@@ -44,11 +44,12 @@ class QgsDamengTransaction;
  * interface defined in the QgsDataProvider class to provide access to spatial
  * data residing in a Dameng/DAMENG enabled database.
   */
-class QgsDamengProvider final : public QgsVectorDataProvider
+class QgsDamengProvider final: public QgsVectorDataProvider
 {
     Q_OBJECT
 
   public:
+
     static const QString DAMENG_KEY;
     static const QString DAMENG_DESCRIPTION;
 
@@ -56,8 +57,8 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     {
       NotSet,
       Unknown,
-      OrdinaryTable,    // UTAB
-      View,             // VIEW
+      OrdinaryTable, // UTAB
+      View, // VIEW
       MaterializedView, // MVIEW
     };
     Q_ENUM( Relkind )
@@ -88,7 +89,8 @@ class QgsDamengProvider final : public QgsVectorDataProvider
      * \param options generic data provider options
      * \param flags generic data provider flags
      */
-    explicit QgsDamengProvider( QString const &uri, const QgsDataProvider::ProviderOptions &providerOptions, Qgis::DataProviderReadFlags flags = Qgis::DataProviderReadFlags() );
+    explicit QgsDamengProvider( QString const &uri, const QgsDataProvider::ProviderOptions &providerOptions,
+                                  Qgis::DataProviderReadFlags flags = Qgis::DataProviderReadFlags() );
 
 
     ~QgsDamengProvider() override;
@@ -156,7 +158,8 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     QVariant minimumValue( int index ) const override;
     QVariant maximumValue( int index ) const override;
     QSet<QVariant> uniqueValues( int index, int limit = -1 ) const override;
-    QStringList uniqueStringsMatching( int index, const QString &substring, int limit = -1, QgsFeedback *feedback = nullptr ) const override;
+    QStringList uniqueStringsMatching( int index, const QString &substring, int limit = -1,
+                                       QgsFeedback *feedback = nullptr ) const override;
     bool isValid() const override;
     Qgis::ProviderStyleStorageCapabilities styleStorageCapabilities() const override;
     QgsAttributeList attributeIndexes() const override;
@@ -191,7 +194,7 @@ class QgsDamengProvider final : public QgsVectorDataProvider
      */
     // XXX For now we have disabled native transforms in the DM provider since
     //     it appears there are problems with some of the projection definitions
-    bool supportsNativeTransform() { return false; }
+    bool supportsNativeTransform() {return false;}
 
     QString name() const override;
     QString description() const override;
@@ -218,10 +221,11 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     bool hasMetadata() const override;
 
     Qgis::VectorLayerTypeFlags vectorLayerTypeFlags() const override;
-
+    
     void handlePostCloneOperations( QgsVectorDataProvider *source ) override;
 
   private:
+
     /** returns relation kind */
     Relkind relkind() const;
 
@@ -247,7 +251,7 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     bool hasSufficientPermsAndCapabilities();
 
     QgsField field( int index ) const;
-    bool loadFields(); /** Load the field list */
+    bool loadFields();  /** Load the field list */
 
     //! Convert a QgsField to work with DM
     static bool convertField( QgsField &field, const QMap<QString, QVariant> *coordinateTransformContext = nullptr );
@@ -292,7 +296,7 @@ class QgsDamengProvider final : public QgsVectorDataProvider
      * If false is returned, mLayerExtent is left untouched.
      */
     bool computeExtent3D() const;
-
+    
     static QgsCoordinateReferenceSystem sridToCrs( int srsId, QgsDamengConn *conn );
 
   private:
@@ -316,17 +320,17 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     /** Name of the table or subquery */
     QString mQuery;
 
-    QString mSchemaName; /** Name of the schema */
-    QString mTableName;  /** Name of the table with no schema*/
+    QString mSchemaName;  /** Name of the schema */
+    QString mTableName; /** Name of the table with no schema*/
 
     /**
      * SQL statement used to limit the features retrieved
      */
     QString mSqlWhereClause;
-
-    mutable Relkind mKind = Relkind::NotSet;               /** Kind of relation */
-    QgsDamengPrimaryKeyType mPrimaryKeyType = PktUnknown;  /** Data type for the primary key */
-    QgsDamengGeometryColumnType mSpatialColType = SctNone; /** Data type for the spatial column */
+    
+    mutable Relkind mKind = Relkind::NotSet;  /** Kind of relation */
+    QgsDamengPrimaryKeyType mPrimaryKeyType = PktUnknown; /** Data type for the primary key */
+    QgsDamengGeometryColumnType mSpatialColType = SctNone;  /** Data type for the spatial column */
 
     /**
      * List of primary key attributes for fetching features.
@@ -334,17 +338,17 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     QList<int> mPrimaryKeyAttrs;
     QString mPrimaryKeyDefault;
 
-    QString mGeometryColumn; //!< Name of the geometry column
+    QString mGeometryColumn;          //!< Name of the geometry column
     QString mGeometryColType;
-    QString mBoundingBoxColumn;                   //!< Name of the bounding box column
-    mutable std::optional<QgsBox3D> mLayerExtent; //!< Rectangle that contains the extent ( bounding box ) of the layer
+    QString mBoundingBoxColumn;       //!< Name of the bounding box column
+    mutable std::optional<QgsBox3D> mLayerExtent;        //!< Rectangle that contains the extent ( bounding box ) of the layer
 
-    Qgis::WkbType mDetectedGeomType = Qgis::WkbType::Unknown;  //!< Geometry type detected in the database
-    Qgis::WkbType mRequestedGeomType = Qgis::WkbType::Unknown; //!< Geometry type requested in the uri
-    QString mDetectedSrid;                                     //!< Spatial reference detected in the database
-    QString mRequestedSrid;                                    //!< Spatial reference requested in the uri
+    Qgis::WkbType mDetectedGeomType = Qgis::WkbType::Unknown ;  //!< Geometry type detected in the database
+    Qgis::WkbType mRequestedGeomType = Qgis::WkbType::Unknown ; //!< Geometry type requested in the uri
+    QString mDetectedSrid;            //!< Spatial reference detected in the database
+    QString mRequestedSrid;           //!< Spatial reference requested in the uri
 
-    std::shared_ptr<QgsDamengSharedData> mShared; //!< Mutable data shared between provider and feature sources
+    std::shared_ptr<QgsDamengSharedData> mShared;  //!< Mutable data shared between provider and feature sources
 
     bool getGeometryDetails();
 
@@ -352,16 +356,16 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     //! @{ Only used with TopoGeometry layers
     struct TopoLayerInfo
     {
-        QString topologyName;
-        long layerId;
-        int layerLevel;
-        enum TopoFeatureType
-        {
-          Puntal = 1,
-          Lineal = 2,
-          Polygonal = 3,
-          Mixed = 4
-        } featureType;
+      QString topologyName;
+      long    layerId;
+      int layerLevel;
+      enum TopoFeatureType
+      {
+        Puntal = 1,
+        Lineal = 2,
+        Polygonal = 3,
+        Mixed = 4
+      } featureType;
     };
 
     TopoLayerInfo mTopoLayerInfo;
@@ -375,8 +379,7 @@ class QgsDamengProvider final : public QgsVectorDataProvider
 
     bool mSelectAtIdDisabled = false; //!< Disable support for SelectAtId
 
-    struct DMFieldNotFound
-    {}; //! Exception to throw
+    struct DMFieldNotFound {}; //! Exception to throw
 
     struct DMException
     {
@@ -400,7 +403,7 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     // A function that determines if the given columns contain unique entries
     bool uniqueData( const QString &quotedColNames );
 
-    Qgis::VectorProviderCapabilities mEnabledCapabilities;
+   Qgis::VectorProviderCapabilities mEnabledCapabilities;
 
     void appendGeomParam( const QgsGeometry &geom, QByteArray &geom_wkb ) const;
     void appendPkParams( QgsFeatureId fid, QStringList &param ) const;
@@ -408,8 +411,8 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     QString paramValue( const QString &fieldvalue, const QString &defaultValue ) const;
 
   private:
-    mutable QgsDamengConn *mConnectionRO = nullptr; //!< Read-only database connection ( initially )
-    QgsDamengConn *mConnectionRW = nullptr;         //!< Read-write database connection ( on update )
+    mutable QgsDamengConn *mConnectionRO = nullptr ; //!< Read-only database connection ( initially )
+    QgsDamengConn *mConnectionRW = nullptr ; //!< Read-write database connection ( on update )
 
     QgsDamengConn *connectionRO() const;
     QgsDamengConn *connectionRW();
@@ -435,6 +438,7 @@ class QgsDamengProvider final : public QgsVectorDataProvider
     bool mCheckPrimaryKeyUnicity = true;
 
     QgsLayerMetadata mLayerMetadata;
+
 };
 
 
@@ -445,9 +449,19 @@ class QgsDamengUtils
     static bool deleteLayer( const QString &uri, QString &errCause );
     static bool deleteSchema( const QString &schema, const QgsDataSourceUri &uri, QString &errCause, bool cascade = false );
 
-    static QString whereClause( QgsFeatureId featureId, const QgsFields &fields, QgsDamengConn *conn, QgsDamengPrimaryKeyType pkType, const QList<int> &pkAttrs, const std::shared_ptr<QgsDamengSharedData> &sharedData );
+    static QString whereClause( QgsFeatureId featureId,
+                                const QgsFields &fields,
+                                QgsDamengConn *conn,
+                                QgsDamengPrimaryKeyType pkType,
+                                const QList<int> &pkAttrs,
+                                const std::shared_ptr<QgsDamengSharedData> &sharedData );
 
-    static QString whereClause( const QgsFeatureIds &featureIds, const QgsFields &fields, QgsDamengConn *conn, QgsDamengPrimaryKeyType pkType, const QList<int> &pkAttrs, const std::shared_ptr<QgsDamengSharedData> &sharedData );
+    static QString whereClause( const QgsFeatureIds &featureIds,
+                                const QgsFields &fields,
+                                QgsDamengConn *conn,
+                                QgsDamengPrimaryKeyType pkType,
+                                const QList<int> &pkAttrs,
+                                const std::shared_ptr<QgsDamengSharedData> &sharedData );
 
     static QString andWhereClauses( const QString &c1, const QString &c2 );
 
@@ -503,15 +517,15 @@ class QgsDamengSharedData
   protected:
     QMutex mMutex; //!< Access to all data members is guarded by the mutex
 
-    long long mFeaturesCounted = -1; //!< Number of features in the layer
+    long long mFeaturesCounted = -1 ;    //!< Number of features in the layer
 
-    QgsFeatureId mFidCounter = 0;               // next feature id if map is used
-    QMap<QVariantList, QgsFeatureId> mKeyToFid; // map key values to feature id
-    QMap<QgsFeatureId, QVariantList> mFidToKey; // map feature id back to key values
-    QMap<int, bool> mFieldSupportsEnumValues;   // map field index to bool flag supports enum values
+    QgsFeatureId mFidCounter = 0;                    // next feature id if map is used
+    QMap<QVariantList, QgsFeatureId> mKeyToFid;      // map key values to feature id
+    QMap<QgsFeatureId, QVariantList> mFidToKey;      // map feature id back to key values
+    QMap<int, bool> mFieldSupportsEnumValues;        // map field index to bool flag supports enum values
 };
 
-class QgsDamengProviderMetadata final : public QgsProviderMetadata
+class QgsDamengProviderMetadata final: public QgsProviderMetadata
 {
   public:
     QgsDamengProviderMetadata();

@@ -18,16 +18,17 @@
 #include "qgsabstractdatabaseproviderconnection.h"
 #include "qgsdamengconnpool.h"
 
-struct QgsDamengProviderResultIterator : public QgsAbstractDatabaseProviderConnection::QueryResult::QueryResultIterator
+struct QgsDamengProviderResultIterator: public QgsAbstractDatabaseProviderConnection::QueryResult::QueryResultIterator
 {
     QgsDamengProviderResultIterator( bool resolveTypes )
       : mResolveTypes( resolveTypes )
     {}
 
-    QMap<int, QMetaType::Type> typeMap;
-    std::unique_ptr<QgsDamengResult> result;
+    QMap<int, QMetaType::Type> mTypeMap;
+    std::unique_ptr<QgsDamengResult> mResult;
 
   private:
+
     QVariantList nextRowPrivate() override;
     bool hasNextRowPrivate() const override;
     long long rowCountPrivate() const override;

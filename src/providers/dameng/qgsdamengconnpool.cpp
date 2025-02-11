@@ -32,8 +32,7 @@ void QgsDamengConnPool::cleanupInstance()
   sInstance = nullptr;
 }
 
-QgsDamengConnPool::QgsDamengConnPool()
-  : QgsConnectionPool< QgsDamengConn *, QgsDamengConnPoolGroup >()
+QgsDamengConnPool::QgsDamengConnPool() : QgsConnectionPool< QgsDamengConn *, QgsDamengConnPoolGroup >()
 {
   QgsDebugCall;
 }
@@ -42,3 +41,4 @@ QgsDamengConnPool::~QgsDamengConnPool()
 {
   QgsDebugCall;
 }
+

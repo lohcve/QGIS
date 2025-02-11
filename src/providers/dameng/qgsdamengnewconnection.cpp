@@ -54,7 +54,7 @@ QgsDamengNewConnection::QgsDamengNewConnection( QWidget *parent, const QString &
     // populate the fields with the stored setting parameters
     QgsSettings settings;
 
-    QString key = "/Dameng/connections/" + connName;
+    QString key = QStringLiteral( "/Dameng/connections/" ) + connName;
     txtHost->setText( settings.value( key + "/host" ).toString() );
     QString port = settings.value( key + "/port" ).toString();
     if ( port.length() == 0 )
@@ -171,7 +171,7 @@ void QgsDamengNewConnection::testConnection()
 
   QgsDataSourceUri uri;
   uri.setConnection( txtHost->text(), txtPort->text(), "dameng", mAuthSettings->username(), mAuthSettings->password(), QgsDataSourceUri::SslPrefer /* meaningless for dameng */, mAuthSettings->configId() );
-
+  
   QgsDamengConn *conn = QgsDamengConn::connectDb( uri.connectionInfo( false ), true );
 
   if ( conn )

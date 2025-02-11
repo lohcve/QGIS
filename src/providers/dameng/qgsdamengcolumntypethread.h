@@ -50,7 +50,7 @@ class QgsDamengGeomColumnTypeThread : public QThread
     bool mUseEstimatedMetadata;
     bool mAllowGeometrylessTables;
     bool mStopped;
-    QList<QgsDamengLayerProperty> layerProperties;
+    QList<QgsDamengLayerProperty> mLayerProperties;
 };
 
 #endif // QGSDAMENGCOLUMNTYPETHREAD_H

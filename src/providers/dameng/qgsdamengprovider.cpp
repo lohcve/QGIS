@@ -69,7 +69,7 @@ static bool tableExists( QgsDamengConn &conn, const QString &schema, const QStri
 static bool columnExists( QgsDamengConn &conn, const QString &schema, const QString &table, const QString &column )
 {
   QgsDMResult *res( conn.LoggedDMexec( "columnExists", QStringLiteral( "SELECT %3 FROM %1.%2;" ).arg( QgsDamengConn::quotedIdentifier( schema ) ).arg( QgsDamengConn::quotedIdentifier( table ) ).arg( QgsDamengConn::quotedIdentifier( column ) ) ) );
-
+  
   return res && res->execstatus() && res->fetchNext();
 }
 
@@ -113,7 +113,7 @@ QgsDamengProvider::QgsDamengProvider( QString const &uri, const ProviderOptions 
   const QString checkUnicityKey { QStringLiteral( "checkPrimaryKeyUnicity" ) };
   if ( mUri.hasParam( checkUnicityKey ) )
   {
-    if ( mUri.param( checkUnicityKey ).compare( QLatin1String( "0" ) ) == 0 )
+    if ( mUri.param( checkUnicityKey ).compare( QLatin1String( "0" ) )  == 0 )
     {
       mCheckPrimaryKeyUnicity = false;
     }
@@ -162,7 +162,7 @@ QgsDamengProvider::QgsDamengProvider( QString const &uri, const ProviderOptions 
     return;
   }
 
-  mConnectionRO = QgsDamengConn::connectDb( mUri.connectionInfo( false ), true, true, false, !mReadFlags.testFlag( Qgis::DataProviderReadFlag::SkipCredentialsRequest ) );
+  mConnectionRO = QgsDamengConn::connectDb( mUri.connectionInfo( false ), true, true, false,  !mReadFlags.testFlag( Qgis::DataProviderReadFlag::SkipCredentialsRequest ) );
   if ( !mConnectionRO )
   {
     return;
@@ -328,12 +328,12 @@ Qgis::VectorLayerTypeFlags QgsDamengProvider::vectorLayerTypeFlags() const
 
 void QgsDamengProvider::handlePostCloneOperations( QgsVectorDataProvider *source )
 {
-  mShared = qobject_cast<QgsDamengProvider *>( source )->mShared;
+  mShared = qobject_cast<QgsDamengProvider*>( source )->mShared;
 }
 
 void QgsDamengProvider::reloadProviderData()
 {
-  mShared->setFeaturesCounted( -1 );
+  mShared->setFeaturesCounted(-1 );
   mLayerExtent.reset();
 }
 
@@ -368,8 +368,7 @@ QString QgsDamengProvider::pkParamWhereClause( int offset, const char *alias ) c
   QString whereClause;
 
   QString aliased;
-  if ( alias )
-    aliased = QStringLiteral( "%1." ).arg( alias );
+  if ( alias ) aliased = QStringLiteral( "%1." ).arg( alias );
 
   switch ( mPrimaryKeyType )
   {
@@ -408,7 +407,7 @@ QString QgsDamengProvider::pkParamWhereClause( int offset, const char *alias ) c
   if ( !mSqlWhereClause.isEmpty() )
   {
     if ( !whereClause.isEmpty() )
-      whereClause += QLatin1String( " AND " );
+      whereClause += QStringLiteral( " AND " );
 
     whereClause += '(' + mSqlWhereClause + ')';
   }
@@ -496,14 +495,14 @@ QString QgsDamengUtils::whereClause( QgsFeatureId featureId, const QgsFields &fi
         if ( !pkVals[0].isNull() )
           whereClause += '=' + pkVals[0].toString();
         else
-          whereClause += QLatin1String( " IS NULL" );
+          whereClause += QStringLiteral( " IS NULL" );
       }
     }
     break;
 
     case PktRowId:
       whereClause = QStringLiteral( "cast(ROWID as bigint) = %1" )
-                      .arg( FID_TO_NUMBER( featureId ) );
+        .arg( FID_TO_NUMBER( featureId ) );
       break;
 
     case PktFidMap:
@@ -521,7 +520,7 @@ QString QgsDamengUtils::whereClause( QgsFeatureId featureId, const QgsFields &fi
 
           whereClause += delim + conn->fieldExpressionForWhereClause( fld, static_cast<QMetaType::Type>( pkVals[i].userType() ) );
           if ( pkVals[i].isNull() )
-            whereClause += QLatin1String( " IS NULL" );
+            whereClause += QStringLiteral( " IS NULL" );
           else
             whereClause += '=' + QgsDamengConn::quotedValue( pkVals[i] ); // remove toString as it must be handled by quotedValue function
 
@@ -547,7 +546,8 @@ QString QgsDamengUtils::whereClause( QgsFeatureId featureId, const QgsFields &fi
 
 QString QgsDamengUtils::whereClause( const QgsFeatureIds &featureIds, const QgsFields &fields, QgsDamengConn *conn, QgsDamengPrimaryKeyType pkType, const QList<int> &pkAttrs, const std::shared_ptr<QgsDamengSharedData> &sharedData )
 {
-  auto lookupKeyWhereClause = [=] {
+  auto lookupKeyWhereClause = [=]
+  {
     if ( featureIds.isEmpty() )
       return QString();
 
@@ -668,27 +668,28 @@ QString QgsDamengProvider::filterWhereClause() const
     QString geom;
     switch ( mSpatialColType )
     {
-      case SctGeometry:
-        geom = quotedIdentifier( mGeometryColumn );
-        break;
-      case SctGeography:
-        geom = quotedIdentifier( mGeometryColumn ) + QLatin1String( "::SYSGEO2.st_geometry" );
-        break;
-      case SctTopoGeometry:
-        geom = QStringLiteral( "SYSTOPOLOGY.DMTOPOLOGY.Geometry(%1)" )
-                 .arg( quotedIdentifier( mGeometryColumn ) );
-        break;
-      default:
-        break;
+    case SctGeometry:
+      geom = quotedIdentifier( mGeometryColumn );
+      break;
+    case SctGeography:
+      geom = quotedIdentifier( mGeometryColumn ) + QLatin1String( "::SYSGEO2.st_geometry" );
+      break;
+    case SctTopoGeometry:
+      geom = QStringLiteral( "SYSTOPOLOGY.DMTOPOLOGY.Geometry(%1)" )
+        .arg( quotedIdentifier( mGeometryColumn ) );
+      break;
+    default:
+      break;
     }
 
-    where += delim + QStringLiteral( "%1(%2)=%3" ).arg( "DMGEO2.st_srid", geom, mRequestedSrid );
+    where += delim + QStringLiteral( "%1(%2)=%3" )
+             .arg( "DMGEO2.st_srid", geom, mRequestedSrid );
     delim = QStringLiteral( " AND " );
   }
 
   if ( mRequestedGeomType != Qgis::WkbType::Unknown && mRequestedGeomType != mDetectedGeomType )
   {
-    where += delim + QgsDamengConn::dmSpatialTypeFilter( mGeometryColumn, ( Qgis::WkbType ) mRequestedGeomType, mSpatialColType == SctGeography );
+    where += delim + QgsDamengConn::dmSpatialTypeFilter( mGeometryColumn, ( Qgis::WkbType )mRequestedGeomType, mSpatialColType == SctGeography );
     delim = QStringLiteral( " AND " );
   }
 
@@ -736,7 +737,7 @@ QString QgsDamengProvider::endianString()
       return QStringLiteral( "NDR" );
     case QgsApplication::XDR:
       return QStringLiteral( "XDR" );
-    default:
+    default :
       return QStringLiteral( "Unknown" );
   }
 }
@@ -755,9 +756,7 @@ bool QgsDamengProvider::loadFields()
 
     // Get the table description
     sql = QStringLiteral( "SELECT COMMENT$ FROM SYS.VSYSTABLECOMMENTS WHERE SCHNAME = %1 and TVNAME = %2;"
-    )
-            .arg( quotedValue( mSchemaName ) )
-            .arg( quotedValue( mTableName ) );
+                                  ).arg( quotedValue( mSchemaName ) ).arg( quotedValue( mTableName ) );
     QgsDMResult *tresult( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
     if ( tresult->fetchNext() )
     {
@@ -793,23 +792,22 @@ bool QgsDamengProvider::loadFields()
         tableoidsList.append( QString::number( tableoid ) );
       }
 
-      QString tableoidFilter = '(' + tableoidsList.join( QLatin1Char( ',' ) ) + ')';
+      QString tableoidFilter = '(' + tableoidsList.join( QLatin1Char(',') ) + ')';
 
       // Collect formatted field types
       sql = QStringLiteral(
-              "select C.ID,C.COLID,C.TYPE$,C.LENGTH$,C.SCALE,D.COMMENT$,C.DEFVAL,C.NULLABLE$,C.INFO2 & 1 IDENT, D.COLID - 1 "
-              "from SYS.VSYSCOLUMNS C "
-              "LEFT OUTER JOIN( select A.COLUMN_ID COLID, COMMENT$, O.ID ID "
-              "  from SYS.VSYSOBJECTS O, SYS.ALL_TAB_COLUMNS A "
-              "  LEFT OUTER JOIN( select TVNAME, SCHNAME, COLNAME, COMMENT$ from SYS.VSYSCOLUMNCOMMENTS ) "
-              "  ON TVNAME = A.TABLE_NAME and SCHNAME = A.OWNER and COLNAME = COLUMN_NAME"
-              "  where A.OWNER in( select NAME from SYS.VSYSOBJECTS "
-              "    where ID in( select SCHID from SYS.VSYSOBJECTS where ID in %1 ) "
-              "  ) and O.ID in %1 and A.TABLE_NAME = O.NAME) D "
-              "on D.ID = C.ID "
-              "where C.ID in %1 and C.ID = D.ID and C.COLID = D.COLID - 1 "
-      )
-              .arg( tableoidFilter );
+        "select C.ID,C.COLID,C.TYPE$,C.LENGTH$,C.SCALE,D.COMMENT$,C.DEFVAL,C.NULLABLE$,C.INFO2 & 1 IDENT, D.COLID - 1 "
+        "from SYS.VSYSCOLUMNS C "
+        "LEFT OUTER JOIN( select A.COLUMN_ID COLID, COMMENT$, O.ID ID "
+        "  from SYS.VSYSOBJECTS O, SYS.ALL_TAB_COLUMNS A "
+        "  LEFT OUTER JOIN( select TVNAME, SCHNAME, COLNAME, COMMENT$ from SYS.VSYSCOLUMNCOMMENTS ) "
+        "  ON TVNAME = A.TABLE_NAME and SCHNAME = A.OWNER and COLNAME = COLUMN_NAME"
+        "  where A.OWNER in( select NAME from SYS.VSYSOBJECTS "
+        "    where ID in( select SCHID from SYS.VSYSOBJECTS where ID in %1 ) "
+        "  ) and O.ID in %1 and A.TABLE_NAME = O.NAME) D "
+        "on D.ID = C.ID "
+        "where C.ID in %1 and C.ID = D.ID and C.COLID = D.COLID - 1 "
+      ).arg( tableoidFilter );
 
       QgsDMResult *fmtFieldTypeResult( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
       if ( !fmtFieldTypeResult || !fmtFieldTypeResult->execstatus() )
@@ -827,7 +825,7 @@ bool QgsDamengProvider::loadFields()
 
         QString descr = fmtFieldTypeResult->value( 5 ).toString();
         QString defVal = fmtFieldTypeResult->value( 6 ).toString();
-        bool attNotNull = fmtFieldTypeResult->value( 7 ).toString() != "Y";
+        bool attNotNull = fmtFieldTypeResult->value( 7 ).toString() != QLatin1String( "Y" );
         QString attIdentity = fmtFieldTypeResult->value( 8 ).toString();
 
         FieldTypeMap[tableid][attnum] = formatType;
@@ -842,17 +840,16 @@ bool QgsDamengProvider::loadFields()
       }
 
       sql = QStringLiteral( "select A.ID, B.POSITION-1, C.type$ "
-                            "  from( select ID, SCHID, NAME from SYS.VSYSOBJECTS ) A, "
-                            "     ( select TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, POSITION from SYS.ALL_CONS_COLUMNS "
-                            "         where TABLE_NAME in( select NAME from SYS.VSYSOBJECTS where ID in %1 ) "
-                            "         and OWNER in( select NAME from SYS.VSYSOBJECTS where "
-                            "            ID in( select SCHID from SYS.VSYSOBJECTS where ID in %1) ) "
-                            "         and substr(CONSTRAINT_NAME,1,4) = \'CONS\') B, "
-                            "     ( select TABLEID, ID, TYPE$ from SYS.VSYSCONS where TYPE$ = \'P\' or TYPE$ = \'U\') C "
-                            "  where A.ID in %1 and B.TABLE_name = A.NAME and C.TABLEID = A.ID "
-                            "     and cast( substr(B.CONSTRAINT_NAME, 5) AS bigint ) = C.ID;"
-      )
-              .arg( tableoidFilter );
+                        "  from( select ID, SCHID, NAME from SYS.VSYSOBJECTS ) A, "
+                        "     ( select TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, POSITION from SYS.ALL_CONS_COLUMNS "
+                        "         where TABLE_NAME in( select NAME from SYS.VSYSOBJECTS where ID in %1 ) "
+                        "         and OWNER in( select NAME from SYS.VSYSOBJECTS where "
+                        "            ID in( select SCHID from SYS.VSYSOBJECTS where ID in %1) ) "
+                        "         and substr(CONSTRAINT_NAME,1,4) = \'CONS\') B, "
+                        "     ( select TABLEID, ID, TYPE$ from SYS.VSYSCONS where TYPE$ = \'P\' or TYPE$ = \'U\') C "
+                        "  where A.ID in %1 and B.TABLE_name = A.NAME and C.TABLEID = A.ID "
+                        "     and cast( substr(B.CONSTRAINT_NAME, 5) AS bigint ) = C.ID;"
+            ).arg( tableoidFilter );
       fmtFieldTypeResult = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
       if ( fmtFieldTypeResult && fmtFieldTypeResult->execstatus() )
       {
@@ -873,7 +870,7 @@ bool QgsDamengProvider::loadFields()
   mIdentityFields.clear();
 
   result = connectionRO()->LoggedDMexec( "QgsDamengProvider", QStringLiteral( "SELECT * FROM %1 LIMIT 0" ).arg( mQuery ) );
-
+  
   for ( int i = 0; i < result.DMnfields(); i++ )
   {
     sdint4 tableoid = result.DMftable( i );
@@ -902,11 +899,14 @@ bool QgsDamengProvider::loadFields()
     {
       fieldType = QVariant::LongLong;
     }
-    else if ( fieldTypeName == QLatin1String( "smallint" ) || fieldTypeName == QLatin1String( "int" ) || fieldTypeName == QLatin1String( "integer" ) || fieldTypeName == QLatin1String( "tinyint" ) || fieldTypeName == QLatin1String( "byte" ) )
+    else if ( fieldTypeName == QLatin1String( "smallint" ) ||
+              fieldTypeName == QLatin1String( "int" ) || fieldTypeName == QLatin1String( "integer" ) ||
+              fieldTypeName == QLatin1String( "tinyint" ) || fieldTypeName == QLatin1String( "byte" ) )
     {
       fieldType = QVariant::Int;
     }
-    else if ( fieldTypeName == QLatin1String( "real" ) || fieldTypeName == QLatin1String( "double precision" ) || fieldTypeName == QLatin1String( "float" ) || fieldTypeName == QLatin1String( "double" ) )
+    else if ( fieldTypeName == QLatin1String( "real" ) || fieldTypeName == QLatin1String( "double precision" ) ||
+              fieldTypeName == QLatin1String( "float" ) || fieldTypeName == QLatin1String( "double" ) )
     {
       fieldType = QVariant::Double;
 
@@ -920,11 +920,12 @@ bool QgsDamengProvider::loadFields()
         }
       }
     }
-    else if ( fieldTypeName == QLatin1String( "number" ) || fieldTypeName == QLatin1String( "numeric" ) || fieldTypeName == QLatin1String( "dec" ) || fieldTypeName == QLatin1String( "decimal" ) )
+    else if ( fieldTypeName == QLatin1String( "number" ) || fieldTypeName == QLatin1String( "numeric" ) ||
+              fieldTypeName == QLatin1String( "dec" ) || fieldTypeName == QLatin1String( "decimal" ) )
     {
       fieldType = QVariant::Double;
 
-      const QRegularExpression re( QRegularExpression::anchoredPattern( QStringLiteral( "%1\\((\\d+),(\\d+)\\)" ).arg( fieldTypeName.toLower() ) ) );
+      const QRegularExpression re( QRegularExpression::anchoredPattern( QStringLiteral( "%1\\((\\d+),(\\d+)\\)" ).arg( fieldTypeName.toLower()) ) );
       const QRegularExpressionMatch match = re.match( formattedFieldType.toLower() );
       if ( match.hasMatch() )
       {
@@ -933,10 +934,13 @@ bool QgsDamengProvider::loadFields()
       }
       else if ( formattedFieldType != QLatin1String( "numeric" ) )
       {
-        QgsMessageLog::logMessage( tr( "Unexpected formatted field type '%1' for field %2" ).arg( formattedFieldType, fieldName ), tr( "Dameng" ) );
+        QgsMessageLog::logMessage( tr( "Unexpected formatted field type '%1' for field %2" )
+                                    .arg( formattedFieldType, fieldName ),
+                                    tr( "Dameng" ) );
       }
     }
-    else if ( fieldTypeName == QLatin1String( "varchar" ) || fieldTypeName == QLatin1String( "varchar2" ) || fieldTypeName == QLatin1String( "longvarchar" ) )
+    else if ( fieldTypeName == QLatin1String( "varchar" ) || fieldTypeName == QLatin1String( "varchar2" ) ||
+              fieldTypeName == QLatin1String( "longvarchar" ) )
     {
       fieldType = QVariant::String;
 
@@ -972,7 +976,7 @@ bool QgsDamengProvider::loadFields()
       else
       {
         QgsMessageLog::logMessage( tr( "Unexpected formatted field type '%1' for field %2" )
-                                     .arg( formattedFieldType, fieldName ) );
+          .arg( formattedFieldType, fieldName ) );
       }
     }
     else if ( fieldTypeName == QLatin1String( "timestamp" ) || fieldTypeName.startsWith( QStringLiteral( "datetime" ) ) )
@@ -989,14 +993,21 @@ bool QgsDamengProvider::loadFields()
       else
       {
         QgsMessageLog::logMessage( tr( "Unexpected formatted field type '%1' for field %2" )
-                                     .arg( formattedFieldType, fieldName ) );
+          .arg( formattedFieldType, fieldName ) );
       }
     }
-    else if ( fieldTypeName == QLatin1String( "binary" ) || fieldTypeName == QLatin1String( "varbinary" ) || fieldTypeName == QLatin1String( "longvarbinary" ) || fieldTypeName == QLatin1String( "raw" ) || fieldTypeName == QLatin1String( "blob" ) || fieldTypeName == QLatin1String( "image" ) )
+    else if ( fieldTypeName == QLatin1String( "binary" ) ||
+              fieldTypeName == QLatin1String( "varbinary" ) ||
+              fieldTypeName == QLatin1String( "longvarbinary" ) ||
+              fieldTypeName == QLatin1String( "raw" ) ||
+              fieldTypeName == QLatin1String( "blob" ) ||
+              fieldTypeName == QLatin1String( "image" ) )
     {
       fieldType = QVariant::ByteArray;
 
-      if ( fieldTypeName == QLatin1String( "binary" ) || fieldTypeName == QLatin1String( "varbinary" ) || fieldTypeName == QLatin1String( "raw" ) )
+      if ( fieldTypeName == QLatin1String( "binary" ) ||
+           fieldTypeName == QLatin1String( "varbinary" ) ||
+           fieldTypeName == QLatin1String( "raw" ) )
       {
         const QRegularExpression re( QRegularExpression::anchoredPattern( QStringLiteral( "%1\\((\\d+),(\\d+)\\)" ).arg( fieldTypeName.toLower() ) ) );
         const QRegularExpressionMatch match = re.match( formattedFieldType.toLower() );
@@ -1007,22 +1018,28 @@ bool QgsDamengProvider::loadFields()
         else
         {
           QgsMessageLog::logMessage( tr( "Unexpected formatted field type '%1' for field %2" )
-                                       .arg( formattedFieldType, fieldName ) );
+            .arg( formattedFieldType, fieldName ) );
         }
       }
     }
-    else if ( fieldTypeName == QLatin1String( "text" ) || fieldTypeName == QLatin1String( "clob" ) || fieldTypeName == QLatin1String( "bfile" ) || fieldTypeName.startsWith( QLatin1String( "time" ) ) || fieldTypeName.startsWith( QLatin1String( "interval" ) ) )
+    else if ( fieldTypeName == QLatin1String( "text" ) ||
+              fieldTypeName == QLatin1String( "clob" ) ||
+              fieldTypeName == QLatin1String( "bfile" ) ||
+              fieldTypeName.startsWith( QLatin1String( "time" ) ) ||
+              fieldTypeName.startsWith( QLatin1String( "interval" ) ) )
     {
       fieldType = QVariant::String;
     }
-    else if ( fieldTypeName.startsWith( "class" ) && fieldTypeName.mid( 5 ).toInt() >= NDCT_CLSID_GEO2_ST_GEOMETRY && fieldTypeName.mid( 5 ).toInt() <= NDCT_CLSID_GEO2_ST_GEOGRAPHY )
+    else if ( fieldTypeName.startsWith( "class" ) &&
+              fieldTypeName.mid( 5 ).toInt() >= NDCT_CLSID_GEO2_ST_GEOMETRY && 
+              fieldTypeName.mid( 5 ).toInt() <= NDCT_CLSID_GEO2_ST_GEOGRAPHY )
     {
       fieldTypeName = QgsDMResult::getGeoName( fieldTypeName.mid( 5 ).toUInt() );
       if ( fieldTypeName != QLatin1String( "unknown" ) )
       {
         if ( fieldTypeName == QLatin1String( "ST_GEOGRAPHY" ) )
           fieldTypeName = QStringLiteral( "geography" );
-        else
+        else 
           fieldTypeName = QStringLiteral( "geometry" );
       }
 
@@ -1032,7 +1049,7 @@ bool QgsDamengProvider::loadFields()
     {
       fieldType = QVariant::String;
 
-      const QRegularExpression re( QRegularExpression::anchoredPattern( QStringLiteral( "%1\\((\\d+),(\\d+)\\)" ).arg( fieldTypeName.toLower() ) ) );
+      const QRegularExpression re( QRegularExpression::anchoredPattern( QStringLiteral(  "%1\\((\\d+),(\\d+)\\)"  ).arg( fieldTypeName.toLower() ) ) );
       const QRegularExpressionMatch match = re.match( formattedFieldType.toLower() );
       if ( match.hasMatch() )
       {
@@ -1041,7 +1058,7 @@ bool QgsDamengProvider::loadFields()
       else
       {
         QgsMessageLog::logMessage( tr( "Unexpected formatted field type '%1' for field %2" )
-                                     .arg( formattedFieldType, fieldName ) );
+                                    .arg( formattedFieldType, fieldName ) );
       }
     }
     else if ( fieldTypeName == QLatin1String( "json" ) || fieldTypeName == QLatin1String( "jsonb" ) )
@@ -1071,7 +1088,7 @@ bool QgsDamengProvider::loadFields()
     {
       QgsMessageLog::logMessage( tr( "Duplicate field %1 found\n" ).arg( fieldName ), tr( "Dameng" ) );
       // In case of read-only query layers we can safely ignore the issue and rename the duplicated field
-      if ( !mIsQuery )
+      if ( ! mIsQuery )
       {
         return false;
       }
@@ -1081,7 +1098,7 @@ bool QgsDamengProvider::loadFields()
         while ( i < std::numeric_limits< unsigned short int >::max() )
         {
           const QString newName { QStringLiteral( "%1 (%2)" ).arg( fieldName ).arg( ++i ) };
-          if ( !fields.contains( newName ) )
+          if ( ! fields.contains( newName ) )
           {
             fieldName = newName;
             break;
@@ -1094,9 +1111,9 @@ bool QgsDamengProvider::loadFields()
 
     mAttrPalIndexName.insert( i, fieldName );
 
-    // If this is an identity field with constraints
+    // If this is an identity field with constraints 
     if ( !identityMap[tableoid][attnum].isEmpty() )
-    {
+    { 
       defValMap[tableoid][attnum] = QStringLiteral( "ident_current(\'%1.%2\')+ident_incr(\'%1.%2\');" ).arg( mSchemaName ).arg( mTableName );
     }
 
@@ -1140,7 +1157,10 @@ bool QgsDamengProvider::hasSufficientPermsAndCapabilities()
     QgsDMResult *testAccess( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
     if ( !testAccess || !testAccess->execstatus() )
     {
-      QgsMessageLog::logMessage( tr( "Unable to access the %1 relation.\nThe error message from the database was:\n%2.\nSQL: %3" ).arg( mQuery, testAccess->getMsg(), sql ), tr( "Dameng" ) );
+      QgsMessageLog::logMessage( tr( "Unable to access the %1 relation.\nThe error message from the database was:\n%2.\nSQL: %3" )
+                                 .arg( mQuery,
+                                       testAccess->getMsg(),
+                                       sql ), tr( "Dameng" ) );
       return false;
     }
 
@@ -1171,25 +1191,29 @@ bool QgsDamengProvider::hasSufficientPermsAndCapabilities()
       {
         if ( mSchemaName.isEmpty() )
         {
-          sql = QString( "SELECT SYS_CONTEXT('userenv', 'current_schema');" );
+          sql = QStringLiteral( "SELECT SYS_CONTEXT('userenv', 'current_schema');" );
 
           testAccess = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
           testAccess->fetchNext();
           mSchemaName = testAccess->value( 0 ).toString();
         }
 
-        sql = QString( "SELECT "
-                       " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 2 )," //delete
-                       " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 3 )," //update
-                       " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 3 )," //update
-                       " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 1 )," //insert
-                       " SYS_CONTEXT('userenv', 'current_schema');" )
-                .arg( quotedValue( mSchemaName ), quotedValue( mTableName ) );
+        sql = QStringLiteral( "SELECT "
+          " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 2 )," //delete
+          " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 3 )," //update
+          " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 3 )," //update
+          " SF_CHECK_USER_TABLE_PRIV(%1, %2, USER, 1 )," //insert
+          " SYS_CONTEXT('userenv', 'current_schema');" )
+          .arg( quotedValue( mSchemaName ), quotedValue( mTableName ) );
 
         testAccess = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
         if ( !testAccess || !testAccess->execstatus() || !testAccess->fetchNext() )
         {
-          QgsMessageLog::logMessage( tr( "Unable to determine table access privileges for the %1 relation.\nThe error message from the database was:\n%2.\nSQL: %3" ).arg( mQuery, testAccess->getMsg(), sql ), tr( "Dameng" ) );
+          QgsMessageLog::logMessage( tr( "Unable to determine table access privileges for the %1 relation.\nThe error message from the database was:\n%2.\nSQL: %3" )
+            .arg( mQuery,
+              testAccess->getMsg(),
+              sql ),
+            tr( "Dameng" ) );
           return false;
         }
 
@@ -1222,12 +1246,14 @@ bool QgsDamengProvider::hasSufficientPermsAndCapabilities()
       }
       else
       {
-        sql = QString( "SELECT SYS_CONTEXT('userenv', 'current_schema');" );
+        sql = QStringLiteral( "SELECT SYS_CONTEXT('userenv', 'current_schema');" );
 
         testAccess = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
         if ( !testAccess || !testAccess->execstatus() || !testAccess->fetchNext() )
         {
-          QgsMessageLog::logMessage( tr( "Unable to determine table access privileges for the %1 relation.\nThe error message from the database was:\n%2.\nSQL: %3" ).arg( mQuery, testAccess->getMsg(), sql ), tr( "Dameng" ) );
+          QgsMessageLog::logMessage( tr( "Unable to determine table access privileges for the %1 relation.\nThe error message from the database was:\n%2.\nSQL: %3" )
+            .arg( mQuery, testAccess->getMsg(), sql ),
+            tr( "Dameng" ) );
           return false;
         }
         if ( mSchemaName.isEmpty() )
@@ -1251,7 +1277,9 @@ bool QgsDamengProvider::hasSufficientPermsAndCapabilities()
     testAccess = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
     if ( !testAccess || !testAccess->execstatus() )
     {
-      QgsMessageLog::logMessage( tr( "Unable to execute the query.\nThe error message from the database was:\n%1.\nSQL: %2" ).arg( testAccess->getMsg(), sql ), tr( "Dameng" ) );
+      QgsMessageLog::logMessage( tr( "Unable to execute the query.\nThe error message from the database was:\n%1.\nSQL: %2" )
+                                 .arg( testAccess->getMsg(),
+                                       sql ), tr( "Dameng" ) );
       return false;
     }
 
@@ -1273,7 +1301,9 @@ bool QgsDamengProvider::hasSufficientPermsAndCapabilities()
   // supports layer metadata
   mEnabledCapabilities |= Qgis::VectorProviderCapability::ReadLayerMetadata;
 
-  if ( ( mEnabledCapabilities & Qgis::VectorProviderCapability::ChangeGeometries ) && ( mEnabledCapabilities & Qgis::VectorProviderCapability::ChangeAttributeValues ) && mSpatialColType != SctTopoGeometry )
+  if ( ( mEnabledCapabilities & Qgis::VectorProviderCapability::ChangeGeometries ) &&
+       ( mEnabledCapabilities & Qgis::VectorProviderCapability::ChangeAttributeValues ) &&
+       mSpatialColType != SctTopoGeometry )
   {
     mEnabledCapabilities |= Qgis::VectorProviderCapability::ChangeFeatures;
   }
@@ -1297,9 +1327,7 @@ bool QgsDamengProvider::determinePrimaryKey()
   {
     sql = QStringLiteral( "select count(*) from ALL_CONSTRAINTS "
                           " where OWNER = %1 and TABLE_NAME = %2 and "
-                          " CONSTRAINT_TYPE = \'F\'; " )
-            .arg( quotedValue( mSchemaName ) )
-            .arg( quotedValue( mTableName ) );
+                          " CONSTRAINT_TYPE = \'F\'; " ).arg( quotedValue( mSchemaName ) ).arg( quotedValue( mTableName ) );
     QgsDebugMsgLevel( QStringLiteral( "Checking whether %1 is a parent table" ).arg( sql ), 2 );
     QgsDMResult *res( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
     bool isParentTable( !res->fetchNext() || res->value( 0 ).toInt() > 0 );
@@ -1307,9 +1335,7 @@ bool QgsDamengProvider::determinePrimaryKey()
     sql = QStringLiteral( "select count(*) from ALL_CONSTRAINTS "
                           " where OWNER = %1 and TABLE_NAME = %2"
                           " and ( CONSTRAINT_TYPE = \'U\' or CONSTRAINT_TYPE = \'P\'); "
-    )
-            .arg( quotedValue( mSchemaName ) )
-            .arg( quotedValue( mTableName ) );
+                        ).arg( quotedValue( mSchemaName ) ).arg( quotedValue( mTableName ) );
     QgsDebugMsgLevel( QStringLiteral( "Retrieving first primary or unique index: %1" ).arg( sql ), 2 );
 
     res = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
@@ -1330,11 +1356,12 @@ bool QgsDamengProvider::determinePrimaryKey()
         mPrimaryKeyType = PktUnknown;
 
         sql = QStringLiteral( "select COLID from SYS.VSYSCOLUMNS where INFO2 & 1= 1 and "
-                              " ID in ( select ID from SYS.VSYSOBJECTS where name = %2 and "
-                              " SCHID = ( select ID from SYS.VSYSOBJECTS where name = %1 and TYPE$ = \'SCH\') ); "
-        )
-                .arg( quotedValue( mSchemaName ) )
-                .arg( type == Relkind::OrdinaryTable ? quotedValue( mTableName ) : quotedValue( QStringLiteral( "MTAB$_%1" ).arg( mTableName ) ) );
+                            " ID in ( select ID from SYS.VSYSOBJECTS where name = %2 and "
+                            " SCHID = ( select ID from SYS.VSYSOBJECTS where name = %1 and TYPE$ = \'SCH\') ); "
+                            ).arg( quotedValue( mSchemaName ) )
+                            .arg( type == Relkind::OrdinaryTable
+                              ? quotedValue( mTableName )
+                              : quotedValue( QStringLiteral( "MTAB$_%1" ).arg( mTableName ) ) );
         res = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
 
         if ( res->fetchNext() )
@@ -1345,14 +1372,15 @@ bool QgsDamengProvider::determinePrimaryKey()
           int idx = res->value( 0 ).toInt();
           mPrimaryKeyType = pkType( mAttributeFields.at( idx ) );
           mPrimaryKeyAttrs << idx;
+          
         }
 
         if ( mPrimaryKeyType == PktUnknown )
         {
-          mPrimaryKeyType = PktRowId;
+            mPrimaryKeyType = PktRowId;
 
-          QgsMessageLog::logMessage( tr( "Primary key is Rowid - changing of existing features disabled (%1; %2)" ).arg( mGeometryColumn, mQuery ) );
-          mEnabledCapabilities &= ~( Qgis::VectorProviderCapability::DeleteFeatures | Qgis::VectorProviderCapability::ChangeAttributeValues | Qgis::VectorProviderCapability::ChangeGeometries | Qgis::VectorProviderCapability::ChangeFeatures );
+            QgsMessageLog::logMessage( tr( "Primary key is Rowid - changing of existing features disabled (%1; %2)" ).arg( mGeometryColumn, mQuery ) );
+            mEnabledCapabilities &= ~( Qgis::VectorProviderCapability::DeleteFeatures | Qgis::VectorProviderCapability::ChangeAttributeValues | Qgis::VectorProviderCapability::ChangeGeometries | Qgis::VectorProviderCapability::ChangeFeatures );
         }
 
         if ( mPrimaryKeyType == PktUnknown )
@@ -1380,11 +1408,9 @@ bool QgsDamengProvider::determinePrimaryKey()
                             " where d.OWNER = a.OWNER and d.TABLE_NAME = a.TABLE_NAME and o.id = c.id and"
                             " ( c.TYPE$ = \'U\' or c.TYPE$ = \'P\') and o.name = a.CONSTRAINT_NAME and "
                             " a.COLUMN_NAME = d.COLUMN_NAME and a.OWNER = %1 and a.TABLE_NAME = %2; "
-      )
-              .arg( quotedValue( mSchemaName ) )
-              .arg( quotedValue( mTableName ) );
+                          ).arg( quotedValue( mSchemaName ) ).arg( quotedValue( mTableName ) );
 
-      QgsDebugMsgLevel( "Retrieving key columns: " + sql, 2 );
+      QgsDebugMsgLevel( QStringLiteral( "Retrieving key columns: " ) + sql, 2 );
       res = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
       QgsDebugMsgLevel( QStringLiteral( "Got %1 rows." ).arg( res.DMntuples() ), 2 );
 
@@ -1396,6 +1422,7 @@ bool QgsDamengProvider::determinePrimaryKey()
       int i = 0;
       while ( res->fetchNext() )
       {
+
         QString name = res->value( 0 ).toString();
         if ( res->value( 1 ).toString().startsWith( 'Y' ) )
         {
@@ -1409,7 +1436,7 @@ bool QgsDamengProvider::determinePrimaryKey()
         int idx = fieldNameIndex( name );
         if ( idx == -1 )
         {
-          QgsDebugMsgLevel( "Skipping " + name, 2 );
+          QgsDebugMsgLevel( QStringLiteral( "Skipping " ) + name, 2 );
           continue;
         }
         QgsField fld = mAttributeFields.at( idx );
@@ -1439,7 +1466,7 @@ bool QgsDamengProvider::determinePrimaryKey()
     QgsFieldConstraints constraints = mAttributeFields.at( mPrimaryKeyAttrs[0] ).constraints();
     constraints.setConstraint( QgsFieldConstraints::ConstraintUnique, QgsFieldConstraints::ConstraintOriginProvider );
     constraints.setConstraint( QgsFieldConstraints::ConstraintNotNull, QgsFieldConstraints::ConstraintOriginProvider );
-    mAttributeFields[mPrimaryKeyAttrs[0]].setConstraints( constraints );
+    mAttributeFields[ mPrimaryKeyAttrs[0] ].setConstraints( constraints );
   }
 
   mValid = mPrimaryKeyType != PktUnknown;
@@ -1522,7 +1549,7 @@ void QgsDamengProvider::determinePrimaryKeyFromUriKeyColumn()
       mPrimaryKeyType = PktRowId;
       return;
     }
-
+      
     for ( const QString &col : cols )
     {
       int idx = fieldNameIndex( col );
@@ -1573,7 +1600,7 @@ bool QgsDamengProvider::uniqueData( const QString &quotedColNames )
 {
   // Check to see if the given columns contain unique data
   QString sql = QStringLiteral( "SELECT count( distinct (%1) ) ^ count( (%1) ) FROM %2%3" )
-                  .arg( quotedColNames, mQuery, filterWhereClause() );
+                .arg( quotedColNames, mQuery, filterWhereClause() );
 
   QgsDMResult *unique( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
 
@@ -1593,7 +1620,8 @@ QVariant QgsDamengProvider::minimumValue( int index ) const
     // get the field name
     QgsField fld = field( index );
     QString sql = QStringLiteral( "SELECT min(%1) AS %1 FROM %2" )
-                    .arg( quotedIdentifier( fld.name() ), mQuery );
+                  .arg( quotedIdentifier( fld.name() ),
+                        mQuery );
 
     if ( !mSqlWhereClause.isEmpty() )
     {
@@ -1620,7 +1648,8 @@ QVariant QgsDamengProvider::maximumValue( int index ) const
     // get the field name
     QgsField fld = field( index );
     QString sql = QStringLiteral( "SELECT max(%1) AS %1 FROM %2" )
-                    .arg( quotedIdentifier( fld.name() ), mQuery );
+      .arg( quotedIdentifier( fld.name() ),
+        mQuery );
 
     if ( !mSqlWhereClause.isEmpty() )
     {
@@ -1667,7 +1696,8 @@ QSet<QVariant> QgsDamengProvider::uniqueValues( int index, int limit ) const
     // get the field name
     QgsField fld = field( index );
     QString sql = QStringLiteral( "SELECT DISTINCT %1 FROM %2" )
-                    .arg( quotedIdentifier( fld.name() ), mQuery );
+                  .arg( quotedIdentifier( fld.name() ),
+                        mQuery );
 
     if ( !mSqlWhereClause.isEmpty() )
     {
@@ -1705,7 +1735,8 @@ QStringList QgsDamengProvider::uniqueStringsMatching( int index, const QString &
     // get the field name
     QgsField fld = field( index );
     QString sql = QStringLiteral( "SELECT DISTINCT %1 FROM %2 WHERE " )
-                    .arg( quotedIdentifier( fld.name() ), mQuery );
+                  .arg( quotedIdentifier( fld.name() ),
+                        mQuery );
 
     if ( !mSqlWhereClause.isEmpty() )
     {
@@ -1767,7 +1798,7 @@ QVariant QgsDamengProvider::defaultValue( int fieldId ) const
     QgsField fld = field( fieldId );
 
     QgsDMResult *res( connectionRO()->LoggedDMexec( "QgsDamengProvider", QStringLiteral( "SELECT %1" ).arg( defVal ) ) );
-
+    
     if ( res->fetchNext() )
     {
       return convertValue( fld.type(), fld.subType(), res->value( 0 ).toString(), fld.typeName() );
@@ -1817,11 +1848,13 @@ bool QgsDamengProvider::skipConstraintCheck( int fieldIndex, QgsFieldConstraints
 /* private */
 bool QgsDamengProvider::getTopoLayerInfo()
 {
-  QString sql = QString( "SELECT t.name, l.layer_id, l.level, l.feature_type"
+  QString sql = QStringLiteral( "SELECT t.name, l.layer_id, l.level, l.feature_type"
                          "FROM SYSTOPOLOGY.SYSLAYER l, SYSTOPOLOGY.SYSTOPOLOGY t "
                          "WHERE l.topology_id = t.id AND l.schema_name=%1 "
                          "AND l.table_name=%2 AND l.feature_column=%3" )
-                  .arg( quotedValue( mSchemaName ), quotedValue( mTableName ), quotedValue( mGeometryColumn ) );
+                .arg( quotedValue( mSchemaName ),
+                      quotedValue( mTableName ),
+                      quotedValue( mGeometryColumn ) );
   QgsDMResult *result( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
 
   if ( !result || !result->execstatus() )
@@ -1830,7 +1863,11 @@ bool QgsDamengProvider::getTopoLayerInfo()
   }
   if ( !result->fetchNext() )
   {
-    QgsMessageLog::logMessage( tr( "Could not find topology of layer %1.%2.%3" ).arg( quotedValue( mSchemaName ), quotedValue( mTableName ), quotedValue( mGeometryColumn ) ), tr( "Dameng" ) );
+    QgsMessageLog::logMessage( tr( "Could not find topology of layer %1.%2.%3" )
+                               .arg( quotedValue( mSchemaName ),
+                                     quotedValue( mTableName ),
+                                     quotedValue( mGeometryColumn ) ),
+                               tr( "Dameng" ) );
     return false;
   }
   mTopoLayerInfo.topologyName = result->value( 0 ).toString();
@@ -1858,13 +1895,16 @@ bool QgsDamengProvider::getTopoLayerInfo()
 /* private */
 void QgsDamengProvider::dropOrphanedTopoGeoms()
 {
-  QString sql = QString( "DELETE FROM %1.relation WHERE layer_id = %2 AND "
+  QString sql = QStringLiteral( "DELETE FROM %1.relation WHERE layer_id = %2 AND "
                          "topogeo_id NOT IN ( SELECT id(%3) FROM %4.%5 )" )
-                  .arg( quotedIdentifier( mTopoLayerInfo.topologyName ) )
-                  .arg( mTopoLayerInfo.layerId )
-                  .arg( quotedIdentifier( mGeometryColumn ), quotedIdentifier( mSchemaName ), quotedIdentifier( mTableName ) );
+                .arg( quotedIdentifier( mTopoLayerInfo.topologyName ) )
+                .arg( mTopoLayerInfo.layerId )
+                .arg( quotedIdentifier( mGeometryColumn ),
+                      quotedIdentifier( mSchemaName ),
+                      quotedIdentifier( mTableName ) )
+                ;
 
-  QgsDebugMsgLevel( "TopoGeom orphans cleanup query: " + sql, 2 );
+  QgsDebugMsgLevel( QStringLiteral( "TopoGeom orphans cleanup query: " ) + sql, 2 );
 
   connectionRW()->LoggedDMexecNR( "QgsDamengProvider", sql );
 }
@@ -1884,18 +1924,19 @@ QString QgsDamengProvider::geomParam( int offset ) const
 
   if ( mSpatialColType == SctTopoGeometry )
   {
-    geometry += QLatin1String( "SYSTOPOLOGY.DMTOPOLOGY.toTopoGeom(" );
+    geometry += QStringLiteral( "SYSTOPOLOGY.DMTOPOLOGY.toTopoGeom(" );
   }
 
   if ( forceMulti )
   {
-    geometry += "DMGEO2.st_multi(";
+    geometry += QStringLiteral( "DMGEO2.st_multi(" );
   }
-
+  
   geometry += mSpatialColType == SctGeography
-                ? QStringLiteral( "DMGEO2.ST_GeomToGeog( DMGEO2.st_geomfromwkb(?,%1 ) )" )
-                    .arg( mRequestedSrid.isEmpty() ? mDetectedSrid : mRequestedSrid )
-                : QStringLiteral( "%1(?,%2 )" ).arg( "DMGEO2.st_geomfromwkb" ).arg( mRequestedSrid.isEmpty() ? mDetectedSrid : mRequestedSrid );
+              ? QStringLiteral( "DMGEO2.ST_GeomToGeog( DMGEO2.st_geomfromwkb(?,%1 ) )" )
+                  .arg( mRequestedSrid.isEmpty() ? mDetectedSrid : mRequestedSrid )
+              :QStringLiteral( "%1(?,%2 )" ).arg( "DMGEO2.st_geomfromwkb" )
+                  .arg( mRequestedSrid.isEmpty() ? mDetectedSrid : mRequestedSrid );
 
   if ( forceMulti )
   {
@@ -1905,8 +1946,8 @@ QString QgsDamengProvider::geomParam( int offset ) const
   if ( mSpatialColType == SctTopoGeometry )
   {
     geometry += QStringLiteral( ",%1,%2 )" )
-                  .arg( quotedValue( mTopoLayerInfo.topologyName ) )
-                  .arg( mTopoLayerInfo.layerId );
+                .arg( quotedValue( mTopoLayerInfo.topologyName ) )
+                .arg( mTopoLayerInfo.layerId );
   }
 
   return geometry;
@@ -1921,7 +1962,7 @@ void QgsDamengProvider::appendGeomParam( const QgsGeometry &geom, QByteArray &ge
   }
 
   QgsGeometry convertedGeom( convertToProviderType( geom ) );
-  QByteArray wkb( !convertedGeom.isNull() ? convertedGeom.asWkb() : geom.asWkb() );
+  QByteArray wkb(!convertedGeom.isNull() ? convertedGeom.asWkb() : geom.asWkb() );
 
   geom_wkb = std::move( wkb );
 }
@@ -1960,12 +2001,12 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
     if ( !mGeometryColumn.isNull() )
     {
       insert += quotedIdentifier( mGeometryColumn );
-
+      
       values += geomParam( offset++ );
       if ( mSpatialColType == SctTopoGeometry )
       {
         topogeom = values;
-        values = "";
+        values = QStringLiteral( "" );
       }
       delim = ',';
     }
@@ -1973,7 +2014,7 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
     bool skipSinglePKField = false;
 
     if ( ( mPrimaryKeyType == PktInt || mPrimaryKeyType == PktInt64 || mPrimaryKeyType == PktUint64
-           || mPrimaryKeyType == PktFidMap || mPrimaryKeyType == PktRowId ) )
+        || mPrimaryKeyType == PktFidMap || mPrimaryKeyType == PktRowId ) )
     {
       if ( mPrimaryKeyAttrs.size() == 1 )
       {
@@ -2034,7 +2075,7 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
 
       QString fieldTypeName = mAttributeFields.at( idx ).typeName();
 
-      QgsDebugMsgLevel( "Checking field against: " + fieldname, 2 );
+      QgsDebugMsgLevel( QStringLiteral( "Checking field against: " ) + fieldname, 2 );
 
       if ( fieldname.isEmpty() || fieldname == mGeometryColumn )
         continue;
@@ -2062,14 +2103,23 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
         else if ( fieldTypeName == QLatin1String( "geometry" ) )
         {
           values += QStringLiteral( "%1%2(%3)" )
-                      .arg( delim, "DMGEO2.st_geomfromewkt", quotedValue( v.toString() ) );
+                    .arg( delim,
+                          "DMGEO2.st_geomfromewkt",
+                          quotedValue( v.toString() ) );
         }
         else if ( fieldTypeName == QLatin1String( "geography" ) )
         {
           values += QStringLiteral( "%1DMGEO2.st_geographyfromewkt(%2)" )
-                      .arg( delim, quotedValue( v.toString() ) );
+                    .arg( delim,
+                          quotedValue( v.toString() ) );
         }
-        else if ( fieldTypeName == QLatin1String( "binary" ) || fieldTypeName == QLatin1String( "varbinary" ) || fieldTypeName == QLatin1String( "longvarbinary" ) || fieldTypeName == QLatin1String( "image" ) || fieldTypeName == QLatin1String( "blob" ) || fieldTypeName == QLatin1String( "raw" ) )
+        else if ( fieldTypeName == QLatin1String( "binary" ) ||
+                  fieldTypeName == QLatin1String( "varbinary" ) ||
+                  fieldTypeName == QLatin1String( "longvarbinary" ) ||
+                  fieldTypeName == QLatin1String( "image" ) ||
+                  fieldTypeName == QLatin1String( "blob" ) ||
+                  fieldTypeName == QLatin1String( "raw" )
+              )
         {
           values += delim + ( defVal.isNull() ? quotedByteaValue( v ) : defVal );
         }
@@ -2085,17 +2135,18 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
         if ( fieldTypeName == QLatin1String( "geometry" ) )
         {
           values += QStringLiteral( "%1%2(?)" )
-                      .arg( delim, "DMGEO2.st_geomfromewkt" );
+                    .arg( delim,
+                          "DMGEO2.st_geomfromewkt" );
         }
         else if ( fieldTypeName == QLatin1String( "geography" ) )
         {
           values += QStringLiteral( "%1DMGEO2.st_geographyfromewkt(?)" )
-                      .arg( delim );
+                    .arg( delim );
         }
         else
         {
           values += QStringLiteral( "%1?" )
-                      .arg( delim );
+                    .arg( delim );
         }
         defaultValues.append( defVal );
         fieldId.append( idx );
@@ -2105,13 +2156,10 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
     }
 
     insert = mSpatialColType == SctTopoGeometry
-               ? QStringLiteral( "declare tg systopology.topogeometry; begin "
-                                 "tg = %3; "
-                                 "%1 ) VALUES( tg%2 ); end; " )
-                   .arg( insert )
-                   .arg( values )
-                   .arg( topogeom )
-               : QStringLiteral( "%1 ) VALUES (%2)" ).arg( insert ).arg( values );
+              ? QStringLiteral( "declare tg systopology.topogeometry; begin "
+                "tg = %3; "
+                "%1 ) VALUES( tg%2 ); end; " ).arg( insert ).arg( values ).arg( topogeom )
+              : QStringLiteral( "%1 ) VALUES (%2)" ).arg( insert ).arg( values );
 
     QgsDebugMsgLevel( QStringLiteral( "prepare addfeatures: %1" ).arg( insert ), 2 );
     ExecStatusType ret = conn->DMprepare( insert, fieldId.size() + offset - 1, nullptr );
@@ -2140,7 +2188,7 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
         if ( value.isNull() )
         {
           QgsField fld = field( attrIdx );
-          v = paramValue( defaultValues[i], defaultValues[i] );
+          v = paramValue( defaultValues[ i ], defaultValues[ i ] );
           features->setAttribute( attrIdx, convertValue( fld.type(), fld.subType(), v, fld.typeName() ) );
         }
         else
@@ -2149,18 +2197,18 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
           if ( value.type() == QVariant::StringList )
           {
             QStringList list_vals = value.toStringList();
-
+            
             list_vals.replaceInStrings( "\\", "\\\\" );
             list_vals.replaceInStrings( "\"", "\\\"" );
             v = QStringLiteral( "{\"" ) + value.toStringList().join( QLatin1String( "\",\"" ) ) + QStringLiteral( "\"}" );
           }
           else if ( value.type() == QVariant::List )
-            v = "{" + value.toStringList().join( "," ) + "}";
+            v = QStringLiteral( "{" ) + value.toStringList().join( "," ) + "}";
           else if ( value.type() == QVariant::Map )
             v = QgsDamengConn::quotedValue( value ).remove( QRegularExpression( "^'|'$" ) );
           else
           {
-            v = paramValue( value.toString(), defaultValues[i] );
+            v = paramValue( value.toString(), defaultValues[ i ] );
           }
 
           if ( v != value.toString() )
@@ -2196,36 +2244,37 @@ bool QgsDamengProvider::addFeatures( QgsFeatureList &flist, Flags flags )
 
         switch ( mPrimaryKeyType )
         {
-          case PktRowId:
-            Fid = result.result()->lastInsertId();
-            if ( !Fid.isNull() )
-            {
-              features->setId( mShared->lookupFid( QList<QVariant>() << Fid ) );
-            }
-            break;
-          case PktInt:
-            Fid = attrs.at( mPrimaryKeyAttrs.at( 0 ) );
-            features->setId( PKINT2FID( STRING_TO_FID( Fid ) ) );
-            break;
-          case PktInt64:
-          case PktUint64:
-          case PktFidMap:
-            for ( int idx : constMPrimaryKeyAttrs )
-            {
-              Fid = attrs.at( idx );
-              primaryKeyVals << Fid;
-            }
+        case PktRowId:
+          Fid = result.result()->lastInsertId();
+          if ( !Fid.isNull() )
+          {
+            features->setId( mShared->lookupFid( QList<QVariant>() << Fid ) );
+          }
+          break;
+        case PktInt:
+          Fid = attrs.at( mPrimaryKeyAttrs.at( 0 ) );
+          features->setId( PKINT2FID( STRING_TO_FID( Fid ) ) );
+          break;
+        case PktInt64:
+        case PktUint64:
+        case PktFidMap:
+          for ( int idx : constMPrimaryKeyAttrs )
+          {
+            Fid = attrs.at( idx );
+            primaryKeyVals << Fid;
+          }
 
-            features->setId( mShared->lookupFid( primaryKeyVals ) );
-            break;
-          default:
-            break;
+          features->setId( mShared->lookupFid( primaryKeyVals ) );
+          break;
+        default:
+          break;
         }
 
         if ( !Fid.isNull() )
         {
           QgsDebugMsgLevel( QStringLiteral( "new fid=%1" ).arg( features->id() ), 4 );
         }
+        
       }
     }
 
@@ -2282,8 +2331,8 @@ bool QgsDamengProvider::deleteFeatures( const QgsFeatureIds &ids )
         continue;
 
       const QString sql = QStringLiteral( "DELETE FROM %1 WHERE %2" )
-                            .arg( mQuery, whereClause( chunkIds ) );
-      QgsDebugMsgLevel( "delete sql: " + sql, 2 );
+                          .arg( mQuery, whereClause( chunkIds ) );
+      QgsDebugMsgLevel( QStringLiteral( "delete sql: " ) + sql, 2 );
 
       //send DELETE statement and do error handling
       QgsDamengResult result( conn->LoggedDMexec( "QgsDamengProvider", sql ) );
@@ -2347,7 +2396,7 @@ bool QgsDamengProvider::truncate()
     conn->begin();
 
     QString sql = QStringLiteral( "TRUNCATE %1" ).arg( mQuery );
-    QgsDebugMsgLevel( "truncate sql: " + sql, 2 );
+    QgsDebugMsgLevel( QStringLiteral( "truncate sql: " ) + sql, 2 );
 
     //send truncate statement and do error handling
     QgsDamengResult result( conn->LoggedDMexec( "QgsDamengProvider", sql ) );
@@ -2415,7 +2464,9 @@ bool QgsDamengProvider::addAttributes( const QList<QgsField> &attributes )
         if ( iter->length() > 0 )
           type = QStringLiteral( "%1(%2)" ).arg( type ).arg( iter->length() );
       }
-      else if ( type == QLatin1String( "int" ) || type == QLatin1String( "int2" ) || type == QLatin1String( "int4" ) || type == QLatin1String( "int8" ) || type == QLatin1String( "smallint" ) || type == QLatin1String( "tinyint" ) || type == QLatin1String( "bigint" ) )
+      else if ( type == QLatin1String( "int" ) || type == QLatin1String( "int2" ) || type == QLatin1String( "int4" ) || type == QLatin1String( "int8" ) || 
+        type == QLatin1String( "smallint" ) || type == QLatin1String( "tinyint" ) || type == QLatin1String( "bigint" )
+        )
       {
         if ( type == QLatin1String( "int2" ) )
           type = QStringLiteral( "smallint" );
@@ -2446,11 +2497,11 @@ bool QgsDamengProvider::addAttributes( const QList<QgsField> &attributes )
       }
       else if ( type.toLower() == QLatin1String( "JSON" ) || type.toLower() == QLatin1String( "json" ) )
       {
-        if ( iter->length() > 0 )
-          type = QStringLiteral( "varchar(%1)" ).arg( iter->length() );
-        sql.append( QStringLiteral( "%1 %2 VARCHAR CHECK (%3 IS JSON( LAX ) )" ).arg( delim, quotedIdentifier( iter->name() ), quotedIdentifier( iter->name() ) ) );
-        delim = ',';
-        continue;
+          if ( iter->length() > 0 )
+              type = QStringLiteral( "varchar(%1)" ).arg( iter->length() );
+          sql.append( QStringLiteral( "%1 %2 VARCHAR CHECK (%3 IS JSON( LAX ) )" ).arg( delim, quotedIdentifier( iter->name() ),quotedIdentifier( iter->name() ) ) );
+          delim = ',';
+          continue;
       }
       else
       {
@@ -2471,7 +2522,7 @@ bool QgsDamengProvider::addAttributes( const QList<QgsField> &attributes )
       if ( !iter->comment().isEmpty() )
       {
         sql = QStringLiteral( "COMMENT ON COLUMN %1.%2 IS %3" )
-                .arg( mQuery, quotedIdentifier( iter->name() ), quotedValue( iter->comment() ) );
+              .arg( mQuery, quotedIdentifier( iter->name() ), quotedValue( iter->comment() ) );
         result = conn->LoggedDMexec( "QgsDamengProvider", sql );
         if ( result.DMresultStatus() != DmResCommandOk )
           throw DMException( result );
@@ -2523,7 +2574,7 @@ bool QgsDamengProvider::deleteAttributes( const QgsAttributeIds &ids )
 
       QString column = mAttributeFields.at( index ).name();
       QString sql = QStringLiteral( "ALTER TABLE %1 DROP COLUMN %2" )
-                      .arg( mQuery, quotedIdentifier( column ) );
+                    .arg( mQuery, quotedIdentifier( column ) );
 
       //send sql statement and do error handling
       QgsDamengResult result( conn->LoggedDMexec( "QgsDamengProvider", sql ) );
@@ -2575,9 +2626,11 @@ bool QgsDamengProvider::renameAttributes( const QgsFieldNameMap &renamedAttribut
     }
 
     sql += QStringLiteral( "ALTER TABLE %1 RENAME COLUMN %2 TO %3;" )
-             .arg( mQuery, quotedIdentifier( mAttributeFields.at( fieldIndex ).name() ), quotedIdentifier( renameIt.value() ) );
+           .arg( mQuery,
+                 quotedIdentifier( mAttributeFields.at( fieldIndex ).name() ),
+                 quotedIdentifier( renameIt.value() ) );
   }
-  sql += QLatin1String( "COMMIT;" );
+  sql += QStringLiteral( "COMMIT;" );
 
   QgsDamengConn *conn = connectionRW();
   if ( !conn )
@@ -2671,17 +2724,18 @@ bool QgsDamengProvider::changeAttributeValues( const QgsChangedAttributesMap &at
           QString defVal = defaultValueClause( siter.key() );
           if ( qgsVariantEqual( *siter, defVal ) )
           {
-            sql += defVal.isNull() ? "NULL" : defVal;
+            sql += defVal.isNull() ? QStringLiteral( "NULL" ) : defVal;
           }
           else if ( fld.typeName() == QLatin1String( "geometry" ) )
           {
             sql += QStringLiteral( "%1(%2)" )
-                     .arg( "DMGEO2.st_geomfromewkt", quotedValue( siter->toString() ) );
+                   .arg( "DMGEO2.st_geomfromewkt",
+                         quotedValue( siter->toString() ) );
           }
           else if ( fld.typeName() == QLatin1String( "geography" ) )
           {
             sql += QStringLiteral( "DMGEO2.st_geographyfromewkt(%1)" )
-                     .arg( quotedValue( siter->toString() ) );
+                   .arg( quotedValue( siter->toString() ) );
           }
           else if ( fld.typeName() == QLatin1String( "byte" ) )
           {
@@ -2727,7 +2781,7 @@ bool QgsDamengProvider::changeAttributeValues( const QgsChangedAttributesMap &at
           if ( !attrs.contains( idx ) )
             continue;
 
-          k[i] = attrs[idx];
+          k[i] = attrs[ idx ];
         }
 
         mShared->insertFid( fid, k );
@@ -2778,53 +2832,48 @@ bool QgsDamengProvider::changeGeometryValues( const QgsGeometryMap &geometry_map
       // to avoid orphans and retain higher level in an eventual
       // hierarchical definition
       update = QStringLiteral( "SELECT id(%1) FROM %2 o WHERE %3" )
-                 .arg( geomParam( 1 ), mQuery, pkParamWhereClause( 2 ) );
+               .arg( geomParam( 1 ), mQuery, pkParamWhereClause( 2 ) );
 
       QString getid = QStringLiteral( "SELECT id(%1) FROM %2 WHERE %3" )
-                        .arg( quotedIdentifier( mGeometryColumn ), mQuery, pkParamWhereClause( 1 ) );
+                      .arg( quotedIdentifier( mGeometryColumn ), mQuery, pkParamWhereClause( 1 ) );
 
-      QgsDebugMsgLevel( "getting old topogeometry id: " + getid, 2 );
+      QgsDebugMsgLevel( QStringLiteral( "getting old topogeometry id: " ) + getid, 2 );
 
       ExecStatusType ret = connectionRO()->DMprepare( getid, 1, nullptr );
       if ( ret != DmResCommandOk )
       {
         QgsDebugError( QStringLiteral( "Exception thrown due to DMprepare of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-                         .arg( connectionRO()->DMgetResult()->getMsg() )
-                         .arg( DmResCommandOk )
-                         .arg( getid ) );
+                     .arg( connectionRO()->DMgetResult()->getMsg() ).arg( DmResCommandOk ).arg( getid ) );
         throw DMException( result );
       }
 
-      QString replace = QString( "UPDATE %1 SET %2="
+      QString replace = QStringLiteral( "UPDATE %1 SET %2="
                                  "( topology_id(%2),layer_id(%2),$1,type(%2) )"
                                  "WHERE %3" )
-                          .arg( mQuery, quotedIdentifier( mGeometryColumn ), pkParamWhereClause( 2 ) );
-      QgsDebugMsgLevel( "TopoGeom swap: " + replace, 2 );
+                        .arg( mQuery, quotedIdentifier( mGeometryColumn ), pkParamWhereClause( 2 ) );
+      QgsDebugMsgLevel( QStringLiteral( "TopoGeom swap: " ) + replace, 2 );
       ret = conn->DMprepare( replace, 2, nullptr );
       if ( ret != DmResCommandOk )
       {
         QgsDebugError( QStringLiteral( "Exception thrown due to DMprepare of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-                         .arg( connectionRO()->DMgetResult()->getMsg() )
-                         .arg( DmResCommandOk )
-                         .arg( replace ) );
+                     .arg( connectionRO()->DMgetResult()->getMsg() ).arg( DmResCommandOk ).arg( replace ) );
         throw DMException( result );
       }
+
     }
     else
     {
       update = QStringLiteral( "UPDATE %1 SET %2=%3 WHERE %4" )
-                 .arg( mQuery, quotedIdentifier( mGeometryColumn ), geomParam( 1 ), pkParamWhereClause( 2 ) );
+               .arg( mQuery, quotedIdentifier( mGeometryColumn ), geomParam( 1 ), pkParamWhereClause( 2 ) );
     }
 
-    QgsDebugMsgLevel( "updating: " + update, 2 );
+    QgsDebugMsgLevel( QStringLiteral( "updating: " ) + update, 2 );
 
     ExecStatusType ret = conn->DMprepare( update, 2, nullptr );
     if ( ret != DmResCommandOk )
     {
       QgsDebugError( QStringLiteral( "Exception thrown due to DMprepare of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-                       .arg( conn->DMgetResult()->getMsg() )
-                       .arg( DmResCommandOk )
-                       .arg( update ) );
+                   .arg( conn->DMgetResult()->getMsg() ).arg( DmResCommandOk ).arg( update ) );
       throw DMException( result );
     }
 
@@ -2834,7 +2883,7 @@ bool QgsDamengProvider::changeGeometryValues( const QgsGeometryMap &geometry_map
           iter != geometry_map.constEnd();
           ++iter )
     {
-      QgsDebugMsgLevel( "iterating over feature id " + FID_TO_STRING( iter.key() ), 2 );
+      QgsDebugMsgLevel( QStringLiteral( "iterating over feature id " ) + FID_TO_STRING( iter.key() ), 2 );
 
       // Save the id of the current topogeometry
       long long old_tg_id = -1;
@@ -2842,14 +2891,13 @@ bool QgsDamengProvider::changeGeometryValues( const QgsGeometryMap &geometry_map
       {
         QStringList params;
         QByteArray geom_wkb;
-        appendGeomParam( *iter, geom_wkb );
+        appendGeomParam(*iter, geom_wkb );
         appendPkParams( iter.key(), params );
         result = connectionRO()->DMexecPrepared( geom_wkb, params );
         if ( result.DMresultStatus() != DmResCommandOk && result.DMresultStatus() != DmResSuccessInfo )
         {
           QgsDebugError( QStringLiteral( "Exception thrown due to DMexecPrepared of 'getid' returning != DMRES_SUCCESS_INFO (%1 != expected %2 )" )
-                           .arg( result.DMresultStatus() )
-                           .arg( DmResCommandOk ) );
+                       .arg( result.DMresultStatus() ).arg( DmResCommandOk ) );
           throw DMException( result );
         }
         // TODO: watch out for NULL, handle somehow
@@ -2869,39 +2917,35 @@ bool QgsDamengProvider::changeGeometryValues( const QgsGeometryMap &geometry_map
       if ( mSpatialColType == SctTopoGeometry )
       {
         long long new_tg_id = result.result()->value( 0 ).toLongLong(); // new topogeo_id
-
+        
         // Replace old TopoGeom with new TopoGeom, so that
         // any hierarchically defined TopoGeom will still have its
         // definition and we'll leave no orphans
-        QString replace = QString( "DELETE FROM %1.relation WHERE "
+        QString replace = QStringLiteral( "DELETE FROM %1.relation WHERE "
                                    "layer_id = %2 AND topogeo_id = %3" )
-                            .arg( quotedIdentifier( mTopoLayerInfo.topologyName ) )
-                            .arg( mTopoLayerInfo.layerId )
-                            .arg( old_tg_id );
+                          .arg( quotedIdentifier( mTopoLayerInfo.topologyName ) )
+                          .arg( mTopoLayerInfo.layerId )
+                          .arg( old_tg_id );
         result = conn->LoggedDMexec( "QgsDamengProvider", replace );
         if ( result.DMresultStatus() != DmResCommandOk )
         {
           QgsDebugError( QStringLiteral( "Exception thrown due to LoggedDMexec of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-                           .arg( result.DMresultStatus() )
-                           .arg( DmResCommandOk )
-                           .arg( replace ) );
+                       .arg( result.DMresultStatus() ).arg( DmResCommandOk ).arg( replace ) );
           throw DMException( result );
         }
         // TODO: use prepared query here
-        replace = QString( "UPDATE %1.relation SET topogeo_id = %2 "
+        replace = QStringLiteral( "UPDATE %1.relation SET topogeo_id = %2 "
                            "WHERE layer_id = %3 AND topogeo_id = %4" )
-                    .arg( quotedIdentifier( mTopoLayerInfo.topologyName ) )
-                    .arg( old_tg_id )
-                    .arg( mTopoLayerInfo.layerId )
-                    .arg( new_tg_id );
-        QgsDebugMsgLevel( "relation swap: " + replace, 2 );
+                  .arg( quotedIdentifier( mTopoLayerInfo.topologyName ) )
+                  .arg( old_tg_id )
+                  .arg( mTopoLayerInfo.layerId )
+                  .arg( new_tg_id );
+        QgsDebugMsgLevel( QStringLiteral( "relation swap: " ) + replace, 2 );
         result = conn->LoggedDMexec( "QgsDamengProvider", replace );
         if ( result.DMresultStatus() != DmResCommandOk )
         {
           QgsDebugError( QStringLiteral( "Exception thrown due to LoggedDMexec of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-                           .arg( result.DMresultStatus() )
-                           .arg( DmResCommandOk )
-                           .arg( replace ) );
+                       .arg( result.DMresultStatus() ).arg( DmResCommandOk ).arg( replace ) );
           throw DMException( result );
         }
       } // if TopoGeometry
@@ -2993,12 +3037,13 @@ bool QgsDamengProvider::changeFeatures( const QgsChangedAttributesMap &attr_map,
           if ( fld.typeName() == QLatin1String( "geometry" ) )
           {
             sql += QStringLiteral( "%1(%2)" )
-                     .arg( "DMGEO2.st_geomfromewkt", quotedValue( siter->toString() ) );
+                   .arg( "DMGEO2.st_geomfromewkt",
+                         quotedValue( siter->toString() ) );
           }
           else if ( fld.typeName() == QLatin1String( "geography" ) )
           {
             sql += QStringLiteral( "DMGEO2.st_geographyfromewkt(%1)" )
-                     .arg( quotedValue( siter->toString() ) );
+                   .arg( quotedValue( siter->toString() ) );
           }
           else
           {
@@ -3037,15 +3082,13 @@ bool QgsDamengProvider::changeFeatures( const QgsChangedAttributesMap &attr_map,
         if ( ret != DmResCommandOk )
         {
           QgsDebugError( QStringLiteral( "Exception thrown due to DMprepare of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-                           .arg( conn->DMgetResult()->getMsg() )
-                           .arg( DmResCommandOk )
-                           .arg( sql ) );
+                       .arg( conn->DMgetResult()->getMsg() ).arg( DmResCommandOk ).arg( sql ) );
           throw DMException( conn->DMgetResult()->getMsg() );
         }
 
         QStringList params;
         QByteArray geom_wkb;
-        const QgsGeometry &geom = geometry_map[fid];
+        const QgsGeometry &geom = geometry_map[ fid ];
         appendGeomParam( geom, geom_wkb );
 
         QgsDMResult *result = conn->DMexecPrepared( geom_wkb, params );
@@ -3068,7 +3111,7 @@ bool QgsDamengProvider::changeFeatures( const QgsChangedAttributesMap &attr_map,
           if ( !attrs.contains( idx ) )
             continue;
 
-          k[i] = attrs[idx];
+          k[i] = attrs[ idx ];
         }
 
         mShared->insertFid( fid, k );
@@ -3137,7 +3180,7 @@ bool QgsDamengProvider::setSubsetString( const QString &theSQL, bool updateFeatu
     sql += QStringLiteral( " WHERE %1" ).arg( mSqlWhereClause );
   }
 
-  sql += QLatin1String( " LIMIT 0" );
+  sql += QStringLiteral( " LIMIT 0" );
 
   QgsDamengResult res( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
   if ( res.DMresultStatus() != DmResCommandOk )
@@ -3184,7 +3227,7 @@ long long QgsDamengProvider::featureCount() const
   if ( featuresCounted >= 0 )
     return featuresCounted;
 
-  if ( !connectionRO() )
+  if ( ! connectionRO() )
     return 0;
 
   // get total number of features
@@ -3198,8 +3241,7 @@ long long QgsDamengProvider::featureCount() const
   if ( !mIsQuery && mUseEstimatedMetadata )
   {
     sql = QStringLiteral( "select count(*) from %1.%2;" )
-            .arg( quotedIdentifier( mSchemaName ) )
-            .arg( quotedIdentifier( mTableName ) );
+                        .arg( quotedIdentifier( mSchemaName ) ).arg( quotedIdentifier( mTableName ) );
     QgsDMResult *result( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
     if ( result->fetchNext() )
     {
@@ -3218,10 +3260,10 @@ long long QgsDamengProvider::featureCount() const
     }
   }
 
-
+  
   mShared->setFeaturesCounted( num );
-
-  QgsDebugMsgLevel( "number of features: " + QString::number( num ), 2 );
+  
+  QgsDebugMsgLevel( QStringLiteral( "number of features: " ) + QString::number( num ), 2 );
 
   return num;
 }
@@ -3254,18 +3296,18 @@ QgsBox3D QgsDamengProvider::extent3D() const
 {
   if ( !isValid() || mGeometryColumn.isNull() )
     return QgsRectangle();
-
+  
   if ( mLayerExtent.has_value() )
     return *mLayerExtent;
 
   // Return the estimated extents, if requested and possible
   if ( mUseEstimatedMetadata )
     estimateExtent();
-
+  
   // Compute the extents, if estimation failed or was disabled
   if ( !mLayerExtent.has_value() )
     computeExtent3D();
-
+  
   if ( mLayerExtent.has_value() )
   {
     return *mLayerExtent;
@@ -3283,12 +3325,12 @@ bool QgsDamengProvider::estimateExtent() const
   QgsDMResult *result;
 
   sql = QStringLiteral( "select %1(%2,%3,%4).ST_AsText() " )
-          .arg(
-            "DMGEO2.st_estimatedextent",
-            quotedValue( mSchemaName ),
-            quotedValue( mTableName ),
-            quotedValue( mGeometryColumn )
-          );
+        .arg(
+              "DMGEO2.st_estimatedextent",
+              quotedValue( mSchemaName ),
+              quotedValue( mTableName ),
+              quotedValue( mGeometryColumn )
+        );
 
   result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
 
@@ -3301,8 +3343,8 @@ bool QgsDamengProvider::estimateExtent() const
   if ( !result->fetchNext() )
   {
     pushError( tr( "Unexpected number of tuples from estimated extent query %1: %2 (1 expected)." )
-                 .arg( sql )
-                 .arg( 0 ) );
+                  .arg( sql )
+                  .arg( 0 ) );
     return false;
   }
 
@@ -3320,25 +3362,29 @@ bool QgsDamengProvider::estimateExtent() const
     QgsMessageLog::logMessage( tr( "result of extents query invalid: %1" ).arg( box2dString ), tr( "Dameng" ) );
   }
   mLayerExtent.emplace(
-    match.captured( 1 ).toDouble(),           // xmin
-    match.captured( 2 ).toDouble(),           // ymin
+    match.captured( 1 ).toDouble(),             // xmin
+    match.captured( 2 ).toDouble(),             // ymin
     std::numeric_limits<double>::quiet_NaN(), // zmin
-    match.captured( 3 ).toDouble(),           // xmax
-    match.captured( 4 ).toDouble(),           // ymax
+    match.captured( 3 ).toDouble(),             // xmax
+    match.captured( 4 ).toDouble(),             // ymax
     std::numeric_limits<double>::quiet_NaN()  // zmax
   );
 
-  QgsDebugMsgLevel( "Set extents to estimated value: " + mLayerExtent.toString(), 2 );
+  QgsDebugMsgLevel( QStringLiteral( "Set extents to estimated value: " ) + mLayerExtent.toString(), 2 );
   return true;
 }
 
 bool QgsDamengProvider::computeExtent3D() const
 {
   QString sql = QStringLiteral( "SELECT box.st_astext() from( SELECT DMGEO2.box3d(DMGEO2.ST_GeomFromGserialized(%1(%2%3))) as box FROM %4%5);" )
-                  .arg( "ST_3DExtent", quotedIdentifier( mBoundingBoxColumn ), mSpatialColType == SctTopoGeometry ? QStringLiteral( "SYSTOPOLOGY.DMTOPOLOGY.Geometry(%1)" ).arg( quotedIdentifier( mBoundingBoxColumn ) ) : "", mQuery, filterWhereClause() );
+                  .arg( "ST_3DExtent", quotedIdentifier( mBoundingBoxColumn ),
+                    mSpatialColType == SctTopoGeometry
+                    ? QStringLiteral( "SYSTOPOLOGY.DMTOPOLOGY.Geometry(%1)" ).arg( quotedIdentifier( mBoundingBoxColumn ) )
+                    : "",
+                    mQuery, filterWhereClause() );
 
-  QgsDMResult *result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
-
+  QgsDMResult* result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
+  
   if ( !result || !result->execstatus() )
   {
     pushError( result->getMsg() );
@@ -3384,13 +3430,13 @@ bool QgsDamengProvider::computeExtent3D() const
       match.captured( 5 ).toDouble(), // ymax
       match.captured( 6 ).toDouble()  // zmax
     );
-    QgsDebugMsgLevel( "Set extents to computed 3D value: " + mLayerExtent->toString(), 2 );
+    QgsDebugMsgLevel( QStringLiteral( "Set extents to computed 3D value: " ) + mLayerExtent->toString(), 2 );
     if ( !elevationProperties()->containsElevationData() )
     {
       // TODO: add a QgsBox3D::force2D method
       mLayerExtent->setZMinimum( std::numeric_limits<double>::quiet_NaN() );
       mLayerExtent->setZMaximum( std::numeric_limits<double>::quiet_NaN() );
-      QgsDebugMsgLevel( "Removed Z from extent as layer is configured to not have elevation properties", 2 );
+      QgsDebugMsgLevel( QStringLiteral( "Removed Z from extent as layer is configured to not have elevation properties" ), 2 );
     }
     return true;
   }
@@ -3408,7 +3454,7 @@ bool QgsDamengProvider::computeExtent3D() const
       match.captured( 4 ).toDouble(),           // ymax
       std::numeric_limits<double>::quiet_NaN()  // zmax
     );
-    QgsDebugMsgLevel( "Set extents to computed 2D value: " + mLayerExtent->toString(), 2 );
+    QgsDebugMsgLevel( QStringLiteral( "Set extents to computed 2D value: " ) + mLayerExtent->toString(), 2 );
     return true;
   }
 
@@ -3440,7 +3486,9 @@ bool QgsDamengProvider::getGeometryDetails()
 
   // Trust the datasource config means that we used requested geometry type and srid
   // We only need to get the spatial column type
-  if ( ( mReadFlags & Qgis::DataProviderReadFlag::TrustDataSource ) && mRequestedGeomType != Qgis::WkbType::Unknown && !mRequestedSrid.isEmpty() )
+  if ( ( mReadFlags & Qgis::DataProviderReadFlag::TrustDataSource ) &&
+       mRequestedGeomType != Qgis::WkbType::Unknown &&
+       !mRequestedSrid.isEmpty() )
   {
     if ( mIsQuery )
     {
@@ -3448,28 +3496,30 @@ bool QgsDamengProvider::getGeometryDetails()
       result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
       if ( !result || !result->execstatus() )
       {
-        QgsMessageLog::logMessage( tr( "Could not execute query.\nThe error message from the database was:\n%1.\nSQL: %2" ).arg( result->getMsg() ).arg( sql ), tr( "Dameng" ) );
+        QgsMessageLog::logMessage( tr( "Could not execute query.\nThe error message from the database was:\n%1.\nSQL: %2" )
+          .arg( result->getMsg() ).arg( sql ), tr( "Dameng" ) );
         mValid = false;
         return false;
       }
 
-      schemaName = "";
+      schemaName = QStringLiteral( "" );
       tableName = mQuery;
     }
     else
     {
       sql = QStringLiteral(
               "select TYPTYPE from "
-              "( select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOMETRY_COLUMN, 1 typtype "
-              "from SYSGEO2.GEOMETRY_COLUMNS union "
-              "select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOGRAPHY_COLUMN, 2 typtype "
-              "from SYSGEO2.GEOGRAPHY_COLUMNS union "
-              "select SCHEMA_NAME F_TABLE_SCHEMA, TABLE_NAME F_TABLE_NAME, FEATURE_COLUMN F_GEOMETRY_COLUMN, 3 typtype "
-              "from SYSTOPOLOGY.SYSLAYER ) "
+                  "( select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOMETRY_COLUMN, 1 typtype "
+                      "from SYSGEO2.GEOMETRY_COLUMNS union "
+                  "select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOGRAPHY_COLUMN, 2 typtype "
+                      "from SYSGEO2.GEOGRAPHY_COLUMNS union "
+                  "select SCHEMA_NAME F_TABLE_SCHEMA, TABLE_NAME F_TABLE_NAME, FEATURE_COLUMN F_GEOMETRY_COLUMN, 3 typtype "
+                      "from SYSTOPOLOGY.SYSLAYER ) "
               " where F_TABLE_SCHEMA = %1 and F_TABLE_NAME = %2 "
               " and F_GEOMETRY_COLUMN = %3; "
-      )
-              .arg( quotedValue( schemaName ), quotedValue( tableName ), quotedValue( geomCol ) );
+            ).arg(  quotedValue( schemaName ),
+                    quotedValue( tableName ),
+                    quotedValue( geomCol ) );
     }
     QgsDebugMsgLevel( QStringLiteral( "Getting the spatial column type: %1" ).arg( sql ), 2 );
 
@@ -3491,7 +3541,7 @@ bool QgsDamengProvider::getGeometryDetails()
 
       // Use requested geometry type and srid
       mDetectedGeomType = mRequestedGeomType;
-      mDetectedSrid = mRequestedSrid;
+      mDetectedSrid     = mRequestedSrid;
       mValid = true;
       return true;
     }
@@ -3543,8 +3593,7 @@ bool QgsDamengProvider::getGeometryDetails()
     {
       sql = QStringLiteral( "SELECT A.NAME SCHEMA_NAME,B.NAME TABLE_NAME from SYS.VSYSOBJECTS B "
                             " LEFT OUTER JOIN ( select ID, name from SYS.VSYSOBJECTS ) A "
-                            " on A.ID = B.SCHID where B.ID = %1;" )
-              .arg( tableoid );
+                            " on A.ID = B.SCHID where B.ID = %1;" ).arg( tableoid );
       result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
 
       if ( result && result->execstatus() && result->fetchNext() )
@@ -3553,16 +3602,14 @@ bool QgsDamengProvider::getGeometryDetails()
         tableName = result->value( 1 ).toString();
 
         sql = QStringLiteral( "select F_GEOMETRY_COLUMN,TYPTYPE from "
-                              "( select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOMETRY_COLUMN, 1 typtype "
-                              "from SYSGEO2.GEOMETRY_COLUMNS union "
-                              "select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOGRAPHY_COLUMN, 2 typtype "
-                              "from SYSGEO2.GEOGRAPHY_COLUMNS union "
-                              "select SCHEMA_NAME F_TABLE_SCHEMA, TABLE_NAME F_TABLE_NAME, FEATURE_COLUMN F_GEOMETRY_COLUMN, 3 typtype "
-                              "from SYSTOPOLOGY.SYSLAYER ) "
+                                "( select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOMETRY_COLUMN, 1 typtype "
+                                    "from SYSGEO2.GEOMETRY_COLUMNS union "
+                                "select F_TABLE_SCHEMA, F_TABLE_NAME, F_GEOGRAPHY_COLUMN, 2 typtype "
+                                    "from SYSGEO2.GEOGRAPHY_COLUMNS union "
+                                "select SCHEMA_NAME F_TABLE_SCHEMA, TABLE_NAME F_TABLE_NAME, FEATURE_COLUMN F_GEOMETRY_COLUMN, 3 typtype "
+                                    "from SYSTOPOLOGY.SYSLAYER ) "
                               "where F_TABLE_SCHEMA = %1 and F_TABLE_NAME = %2; "
-        )
-                .arg( quotedValue( schemaName ) )
-                .arg( quotedValue( tableName ) );
+                            ).arg( quotedValue( schemaName ) ).arg( quotedValue( tableName ) );
         result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
         if ( result && result->execstatus() && result->fetchNext() )
         {
@@ -3597,8 +3644,10 @@ bool QgsDamengProvider::getGeometryDetails()
   {
     // check geometry columns
     sql = QStringLiteral( "SELECT upper( type ),srid,coord_dimension FROM SYSGEO2.geometry_columns "
-                          "WHERE F_TABLE_NAME = %1 AND F_GEOMETRY_COLUMN = %2 AND F_TABLE_SCHEMA = %3;" )
-            .arg( quotedValue( tableName ), quotedValue( geomCol ), quotedValue( schemaName ) );
+                        "WHERE F_TABLE_NAME = %1 AND F_GEOMETRY_COLUMN = %2 AND F_TABLE_SCHEMA = %3;" )
+          .arg( quotedValue( tableName ),
+                quotedValue( geomCol ),
+                quotedValue( schemaName ) );
 
     QgsDebugMsgLevel( QStringLiteral( "Getting geometry column: %1" ).arg( sql ), 2 );
     result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
@@ -3618,11 +3667,10 @@ bool QgsDamengProvider::getGeometryDetails()
       if ( dim == QLatin1String( "3" ) && !detectedType.endsWith( 'M' ) )
         detectedType += QLatin1Char( 'Z' );
       else if ( dim == QLatin1String( "4" ) )
-        detectedType += QLatin1String( "ZM" );
+        detectedType += QStringLiteral( "ZM" );
 
       QString ds = result->value( 1 ).toString();
-      if ( ds != QLatin1String( "0" ) )
-        detectedSrid = ds;
+      if ( ds != QLatin1String( "0" ) ) detectedSrid = ds;
       mSpatialColType = SctGeometry;
     }
     else
@@ -3635,7 +3683,9 @@ bool QgsDamengProvider::getGeometryDetails()
       // check geography columns
       sql = QStringLiteral( "SELECT upper( type ),srid FROM SYSGEO2.geography_columns WHERE "
                             " f_table_name = %1 AND f_geography_column = %2 AND f_table_schema = %3;" )
-              .arg( quotedValue( tableName ), quotedValue( geomCol ), quotedValue( schemaName ) );
+            .arg( quotedValue( tableName ),
+                  quotedValue( geomCol ),
+                  quotedValue( schemaName ) );
 
       QgsDebugMsgLevel( QStringLiteral( "Getting geography column: %1" ).arg( sql ), 2 );
       result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
@@ -3644,11 +3694,9 @@ bool QgsDamengProvider::getGeometryDetails()
       if ( result->fetchNext() )
       {
         QString dt = result->value( 0 ).toString();
-        if ( dt != "GEOMETRY" )
-          detectedType = dt;
+        if ( dt != QStringLiteral( "GEOMETRY" ) ) detectedType = dt;
         QString ds = result->value( 1 ).toString();
-        if ( ds != "0" )
-          detectedSrid = ds;
+        if ( ds != QStringLiteral( "0" ) ) detectedSrid = ds;
         mSpatialColType = SctGeography;
       }
       else
@@ -3660,7 +3708,7 @@ bool QgsDamengProvider::getGeometryDetails()
     if ( detectedType.isEmpty() && connectionRO()->hasTopology() )
     {
       // check topology.layer
-      sql = QString( "SELECT CASE "
+      sql = QStringLiteral( "SELECT CASE "
                      "WHEN l.feature_type = 1 THEN 'ST_MULTIPOINT' "
                      "WHEN l.feature_type = 2 THEN 'ST_MULTILINESTRING' "
                      "WHEN l.feature_type = 3 THEN 'ST_MULTIPOLYGON' "
@@ -3668,7 +3716,9 @@ bool QgsDamengProvider::getGeometryDetails()
                      "END AS type, t.srid FROM SYSTOPOLOGY.SYSLAYER l, SYSTOPOLOGY.SYSTOPOLOGY t "
                      "WHERE l.topology_id = t.id AND l.schema_name=%3 "
                      "AND l.table_name=%1 AND l.feature_column=%2" )
-              .arg( quotedValue( tableName ), quotedValue( geomCol ), quotedValue( schemaName ) );
+            .arg( quotedValue( tableName ),
+                  quotedValue( geomCol ),
+                  quotedValue( schemaName ) );
 
       QgsDebugMsgLevel( QStringLiteral( "Getting TopoGeometry column: %1" ).arg( sql ), 2 );
       result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
@@ -3688,11 +3738,12 @@ bool QgsDamengProvider::getGeometryDetails()
 
     if ( mSpatialColType == SctNone )
     {
-      sql = QString( "select OWNER,TYPE_NAME,TYPE_OID,SUPERTYPE_NAME from SYS.ALL_TYPES where TYPE_OID = "
-                     "( select cast( substr( DATA_TYPE, 6 ) as BIGINT ) from SYS.ALL_TAB_COLS "
+      sql = QStringLiteral( "select OWNER,TYPE_NAME,TYPE_OID,SUPERTYPE_NAME from SYS.ALL_TYPES where TYPE_OID = "
+                         "( select cast( substr( DATA_TYPE, 6 ) as BIGINT ) from SYS.ALL_TAB_COLS "
                      "where OWNER = %3 and table_name = %1 and COLUMN_NAME = %2 );"
-      )
-              .arg( quotedValue( tableName ), quotedValue( geomCol ), quotedValue( schemaName ) );
+            ).arg( quotedValue( tableName ),
+                  quotedValue( geomCol ),
+                  quotedValue( schemaName ) );
       QgsDebugMsgLevel( QStringLiteral( "Getting column datatype: %1" ).arg( sql ), 2 );
       result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
       QgsDebugMsgLevel( QStringLiteral( "Column datatype query returned %1" ).arg( result.DMntuples() ), 2 );
@@ -3716,7 +3767,7 @@ bool QgsDamengProvider::getGeometryDetails()
   else
   {
     sql = QStringLiteral( "select %1,DMGEO2.st_srid(%1) from %2 limit 1; " )
-            .arg( quotedIdentifier( mGeometryColumn ), mQuery );
+                    .arg( quotedIdentifier( mGeometryColumn ), mQuery );
     result = connectionRO()->LoggedDMexec( "QgsDamengProvider", sql );
     if ( result && result->execstatus() )
     {
@@ -3747,7 +3798,7 @@ bool QgsDamengProvider::getGeometryDetails()
   }
 
   mDetectedGeomType = QgsDamengConn::wkbTypeFromDmSpatial( detectedType );
-  mDetectedSrid = detectedSrid;
+  mDetectedSrid     = detectedSrid;
 
   if ( mDetectedGeomType == Qgis::WkbType::Unknown )
   {
@@ -3755,12 +3806,12 @@ bool QgsDamengProvider::getGeometryDetails()
     if ( !mIsQuery )
     {
       layerProperty.schemaName = schemaName;
-      layerProperty.tableName = tableName;
+      layerProperty.tableName  = tableName;
     }
     else
     {
       layerProperty.schemaName.clear();
-      layerProperty.tableName = mQuery;
+      layerProperty.tableName  = mQuery;
     }
     layerProperty.geometryColName = mGeometryColumn;
     layerProperty.geometryColType = mSpatialColType;
@@ -3792,7 +3843,8 @@ bool QgsDamengProvider::getGeometryDetails()
       {
         Qgis::WkbType wkbType = layerProperty.types.at( i );
 
-        if ( ( wkbType != Qgis::WkbType::Unknown && ( mRequestedGeomType == Qgis::WkbType::Unknown || mRequestedGeomType == wkbType ) ) && ( mRequestedSrid.isEmpty() || layerProperty.srids.at( i ) == mRequestedSrid.toInt() ) )
+        if ( ( wkbType != Qgis::WkbType::Unknown && ( mRequestedGeomType == Qgis::WkbType::Unknown || mRequestedGeomType == wkbType ) ) &&
+             ( mRequestedSrid.isEmpty() || layerProperty.srids.at( i ) == mRequestedSrid.toInt() ) )
           break;
       }
 
@@ -3803,7 +3855,7 @@ bool QgsDamengProvider::getGeometryDetails()
         {
           // only what we requested is available
           mDetectedGeomType = layerProperty.types.at( 0 );
-          mDetectedSrid = QString::number( layerProperty.srids.at( 0 ) );
+          mDetectedSrid     = QString::number( layerProperty.srids.at( 0 ) );
         }
       }
       else
@@ -3877,13 +3929,13 @@ bool QgsDamengProvider::convertField( QgsField &field, const QMap<QString, QVari
       break;
 
     case QVariant::Map:
-      fieldType = field.typeName();
-      if ( fieldType.isEmpty() )
-        fieldType = QStringLiteral( "text" );
-      fieldPrec = 0;
-      break;
+        fieldType = field.typeName();
+        if ( fieldType.isEmpty() )
+            fieldType = QStringLiteral( "text" );
+        fieldPrec = 0;
+        break;
 
-    case QVariant::StringList:
+ case QVariant::StringList:
       fieldType = QStringLiteral( "text" );
       fieldPrec = 0;
       break;
@@ -3891,13 +3943,12 @@ bool QgsDamengProvider::convertField( QgsField &field, const QMap<QString, QVari
     case QVariant::List:
     {
       QgsField sub( QString(), field.subType(), QString(), fieldSize, fieldPrec );
-      if ( !convertField( sub, nullptr ) )
-        return false;
-      fieldType = "_" + sub.typeName();
+      if ( !convertField( sub, nullptr ) ) return false;
+      fieldType = QStringLiteral( "_" ) + sub.typeName();
       fieldPrec = 0;
       break;
     }
-
+ 
     case QVariant::Double:
       if ( fieldSize > 18 )
       {
@@ -3972,7 +4023,14 @@ void dmSpatialGeometryType( Qgis::WkbType wkbType, QString &geometryType, int &d
   }
 }
 
-Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri, const QgsFields &fields, Qgis::WkbType wkbType, const QgsCoordinateReferenceSystem &srs, bool overwrite, QMap<int, int> *oldToNewAttrIdxMap, QString *errorMessage, const QMap<QString, QVariant> *options )
+Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri,
+    const QgsFields &fields,
+    Qgis::WkbType wkbType,
+    const QgsCoordinateReferenceSystem &srs,
+    bool overwrite,
+    QMap<int, int> *oldToNewAttrIdxMap,
+    QString *errorMessage,
+    const QMap<QString, QVariant> *options )
 {
   // populate members from the uri structure
   QgsDataSourceUri dsUri( uri );
@@ -4016,7 +4074,10 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
   {
     for ( const auto &field : std::as_const( fields ) )
     {
-      if ( field.isNumeric() && ( field.constraints().constraints() & QgsFieldConstraints::Constraint::ConstraintUnique ) && ( field.constraints().constraints() & QgsFieldConstraints::Constraint::ConstraintNotNull ) && ( field.constraints().constraints() & QgsFieldConstraints::ConstraintOrigin::ConstraintOriginProvider ) )
+      if ( field.isNumeric() &&
+           ( field.constraints().constraints() & QgsFieldConstraints::Constraint::ConstraintUnique ) &&
+           ( field.constraints().constraints() & QgsFieldConstraints::Constraint::ConstraintNotNull ) &&
+           ( field.constraints().constraints() & QgsFieldConstraints::ConstraintOrigin::ConstraintOriginProvider ) )
       {
         primaryKey = field.name();
         break;
@@ -4063,8 +4124,7 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
           }
         }
       }
-      if ( type.isEmpty() )
-        type = QStringLiteral( "int" );
+      if ( type.isEmpty() ) type = QStringLiteral( "int" );
       else
       {
         // if the pk field's type is one of the dameng integer types,
@@ -4087,10 +4147,10 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
     // We want a valid schema name ...
     if ( schemaName.isEmpty() )
     {
-      QString sql = QString( "select SYS_CONTEXT(\'userenv\', \'current_schema\') from dual;" );
+      QString sql = QStringLiteral( "select SYS_CONTEXT(\'userenv\', \'current_schema\') from dual;" );
       QgsDMResult *result( conn->LoggedDMexec( "QgsDamengProvider", sql ) );
       result->fetchNext();
-
+      
       if ( !result || !result->execstatus() )
         throw DMException( result->getMsg() );
       schemaName = result->value( 0 ).toString();
@@ -4100,9 +4160,10 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
       }
     }
 
-    QString sql = QString( "select count( distinct( TABLE_NAME ) ) FROM ALL_TAB_COLUMNS "
+    QString sql = QStringLiteral( "select count( distinct( TABLE_NAME ) ) FROM ALL_TAB_COLUMNS "
                            " where OWNER = %1 and TABLE_NAME = %2;" )
-                    .arg( quotedValue( tableName ), quotedValue( schemaName ) );
+                  .arg( quotedValue( tableName ),
+                        quotedValue( schemaName ) );
 
     QgsDMResult *result( conn->LoggedDMexec( "QgsDamengProvider", sql ) );
     if ( !result || !result->execstatus() )
@@ -4114,15 +4175,16 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
     if ( exists && overwrite )
     {
       // delete the table if exists, then re-create it
-      QString sql = QString( "CALL DMGEO2.DropGeometryTable(%1,%2);" )
-                      .arg( quotedValue( schemaName ), quotedValue( tableName ) );
+      QString sql = QStringLiteral( "CALL DMGEO2.DropGeometryTable(%1,%2);" )
+                    .arg( quotedValue( schemaName ),
+                          quotedValue( tableName ) );
 
       result = conn->LoggedDMexec( "QgsDamengProvider", sql );
       if ( !result || !result->execstatus() )
         throw DMException( result->getMsg() );
     }
-
-    sql = QStringLiteral( "CREATE TABLE %1(" ).arg( schemaTableName );
+    
+    sql = QStringLiteral( "CREATE TABLE %1(" ) .arg( schemaTableName );
     QString pk;
     for ( int i = 0; i < pkList.size(); ++i )
     {
@@ -4140,14 +4202,14 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
 
       if ( i )
       {
-        pk += QLatin1Char( ',' );
+        pk  += QLatin1Char( ',' );
         sql += QLatin1Char( ',' );
       }
 
       pk += col;
       sql += col + " " + type;
     }
-    sql += QStringLiteral( ", PRIMARY KEY (%1) )" ).arg( pk );
+    sql += QStringLiteral( ", PRIMARY KEY (%1) )" ) .arg( pk );
 
     result = conn->LoggedDMexec( "QgsDamengProvider", sql );
     if ( !result || !result->execstatus() )
@@ -4163,10 +4225,12 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
     if ( !geometryType.isEmpty() )
     {
       sql = QStringLiteral( "CALL DMGEO2.AddGeometryColumn(%1,%2,%3,%4,%5,%6);" )
-              .arg( quotedValue( schemaName ), quotedValue( tableName ), quotedValue( geometryColumn ) )
-              .arg( srid )
-              .arg( quotedValue( geometryType ) )
-              .arg( dim );
+            .arg( quotedValue( schemaName ),
+                  quotedValue( tableName ),
+                  quotedValue( geometryColumn ) )
+            .arg( srid )
+            .arg( quotedValue( geometryType ) )
+            .arg( dim );
 
       result = conn->LoggedDMexec( "QgsDamengProvider", sql );
       if ( !result || !result->execstatus() )
@@ -4186,7 +4250,8 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
   {
     if ( errorMessage )
       *errorMessage = QObject::tr( "Creation of data source %1 failed: \n%2" )
-                        .arg( schemaTableName, e.errorMessage() );
+                      .arg( schemaTableName,
+                            e.errorMessage() );
 
     conn->LoggedDMexecNR( "QgsDamengProvider", QStringLiteral( "ROLLBACK" ) );
     conn->unref();
@@ -4268,13 +4333,15 @@ Qgis::VectorExportResult QgsDamengProvider::createEmptyLayer( const QString &uri
         return Qgis::VectorExportResult::ErrorAttributeTypeUnsupported;
       }
 
-      QgsDebugMsgLevel( QStringLiteral( "creating field #%1 -> #%2 name %3 type %4 typename %5 width %6 precision %7" ).arg( fldIdx ).arg( offset ).arg( fld.name(), QVariant::typeToName( fld.type() ), fld.typeName() ).arg( fld.length() ).arg( fld.precision() ), 2 );
+      QgsDebugMsgLevel( QStringLiteral( "creating field #%1 -> #%2 name %3 type %4 typename %5 width %6 precision %7" )
+                        .arg( fldIdx ).arg( offset ).arg( fld.name(), QVariant::typeToName( fld.type() ), fld.typeName() ).arg( fld.length() ).arg( fld.precision() )
+                      , 2 );
 
       flist.append( fld );
       if ( oldToNewAttrIdxMap )
         oldToNewAttrIdxMap->insert( fldIdx, offset++ );
     }
-
+    
     if ( !provider->addAttributes( flist ) )
     {
       if ( errorMessage )
@@ -4300,7 +4367,7 @@ QgsCoordinateReferenceSystem QgsDamengProvider::crs() const
 {
   QgsCoordinateReferenceSystem srs;
   int srid = mRequestedSrid.isEmpty() ? mDetectedSrid.toInt() : mRequestedSrid.toInt();
-
+  
   return sridToCrs( srid, connectionRO() );
 }
 
@@ -4317,15 +4384,15 @@ QString QgsDamengProvider::getTableName()
 size_t QgsDamengProvider::layerCount() const
 {
   return 1; // XXX need to return actual number of layers
-}
+} 
 
 
-QString QgsDamengProvider::name() const
+QString  QgsDamengProvider::name() const
 {
   return DAMENG_KEY;
-}
+} 
 
-QString QgsDamengProvider::description() const
+QString  QgsDamengProvider::description() const
 {
   QString dmVersion( tr( "Dameng version: unknown" ) );
   QString dmSpatialVersion( tr( "unknown" ) );
@@ -4347,7 +4414,7 @@ QString QgsDamengProvider::description() const
   }
 
   return tr( "Dameng/Dameng provider\n%1\nDAMENG %2" ).arg( dmVersion, dmSpatialVersion );
-}
+} 
 
 static void jumpSpace( const QString &txt, int &i )
 {
@@ -4369,7 +4436,7 @@ QString QgsDamengProvider::getNextString( const QString &txt, int &i, const QStr
     }
     i += match.captured( 1 ).length() + 2;
     jumpSpace( txt, i );
-    if ( !QStringView { txt }.mid( i ).startsWith( sep ) && i < txt.length() )
+    if ( !QStringView{txt}.mid( i ).startsWith( sep ) && i < txt.length() )
     {
       QgsMessageLog::logMessage( tr( "Cannot find separator: %1" ).arg( txt.mid( i ) ), tr( "Dameng" ) );
       return QString();
@@ -4382,14 +4449,14 @@ QString QgsDamengProvider::getNextString( const QString &txt, int &i, const QStr
     int start = i;
     for ( ; i < txt.length(); i++ )
     {
-      if ( QStringView { txt }.mid( i ).startsWith( sep ) )
+      if ( QStringView{txt}.mid( i ).startsWith( sep ) )
       {
-        QStringView v( QStringView { txt }.mid( start, i - start ) );
+        QStringView v( QStringView{txt}.mid( start, i - start ) );
         i += sep.length();
         return v.trimmed().toString();
       }
     }
-    return QStringView { txt }.mid( start, i - start ).trimmed().toString();
+    return QStringView{txt}.mid( start, i - start ).trimmed().toString();
   }
 }
 
@@ -4404,9 +4471,9 @@ QVariant QgsDamengProvider::convertValue( QMetaType::Type type, QMetaType::Type 
         result = QgsJsonUtils::parseJson( value );
       break;
     case QVariant::Bool:
-      if ( value == "1" )
+      if ( value == QLatin1String( "1" ) )
         result = true;
-      else if ( value == "0" )
+      else if ( value == QLatin1String( "0" ) )
         result = false;
       else
         result = QgsVariantUtils::createNullVariant( type );
@@ -4457,8 +4524,7 @@ QgsDamengProvider::Relkind QgsDamengProvider::relkind() const
     QString sql = QStringLiteral( "SELECT distinct( SUBTYPE$),INFO5 FROM SYS.VSYSOBJECTS A where "
                                   " ( TYPE$ = \'SCHOBJ\' or TYPE$ = \'TABOBJ\') and NAME = %2 and "
                                   " SCHID = ( select ID from SYS.VSYSOBJECTS B where "
-                                  " NAME = %1 and TYPE$ = \'SCH\'); " )
-                    .arg( quotedValue( mSchemaName ), quotedValue( mTableName ) );
+                                  " NAME = %1 and TYPE$ = \'SCH\'); " ).arg( quotedValue( mSchemaName ),quotedValue( mTableName ) );
     QgsDMResult *res( connectionRO()->LoggedDMexec( "QgsDamengProvider", sql ) );
     res->fetchNext();
     QString type = res->value( 0 ).toString();
@@ -4519,13 +4585,12 @@ Qgis::VectorExportResult QgsDamengProviderMetadata::createEmptyLayer(
   bool overwrite,
   QMap<int, int> &oldToNewAttrIdxMap,
   QString &errorMessage,
-  const QMap<QString, QVariant> *options
-)
+  const QMap<QString, QVariant> *options )
 {
   return QgsDamengProvider::createEmptyLayer(
-    uri, fields, wkbType, srs, overwrite,
-    &oldToNewAttrIdxMap, &errorMessage, options
-  );
+           uri, fields, wkbType, srs, overwrite,
+           &oldToNewAttrIdxMap, &errorMessage, options
+         );
 }
 
 bool QgsDamengProviderMetadata::styleExists( const QString &uri, const QString &styleId, QString &errorCause )
@@ -4556,7 +4621,7 @@ bool QgsDamengProviderMetadata::styleExists( const QString &uri, const QString &
 
   const QString wkbTypeString = QgsDamengConn::quotedValue( QgsWkbTypes::geometryDisplayString( QgsWkbTypes::geometryType( dsUri.wkbType() ) ) );
 
-  const QString checkQuery = QString( "SELECT styleName"
+  const QString checkQuery = QStringLiteral( "SELECT styleName"
                                       " FROM %1.LAYER_STYLES"
                                       " WHERE f_table_catalog=%1"
                                       " AND f_table_schema=%2"
@@ -4573,7 +4638,7 @@ bool QgsDamengProviderMetadata::styleExists( const QString &uri, const QString &
                                .arg( QgsDamengConn::quotedValue( styleId.isEmpty() ? dsUri.table() : styleId ) );
 
   QgsDamengResult res( conn->LoggedDMexec( "QgsDamengProviderMetadata", checkQuery ) );
-  if ( res.DMresultStatus() == DmResCommandOk )
+  if ( res.DMresultStatus() == DmResCommandOk)
   {
     return res.result()->fetchNext();
   }
@@ -4582,6 +4647,7 @@ bool QgsDamengProviderMetadata::styleExists( const QString &uri, const QString &
     errorCause = res.DMresultErrorMessage();
     return false;
   }
+
 }
 
 bool QgsDamengProviderMetadata::saveStyle( const QString &uri, const QString &qmlStyleIn, const QString &sldStyleIn, const QString &styleName, const QString &styleDescription, const QString &uiFileContent, bool useAsDefault, QString &errCause )
@@ -4604,21 +4670,20 @@ bool QgsDamengProviderMetadata::saveStyle( const QString &uri, const QString &qm
   if ( !tableExists( *conn, dsUri.username(), QStringLiteral( "LAYER_STYLES" ) ) )
   {
     QgsDamengResult res( conn->LoggedDMexec( "QgsDamengProviderMetadata", QStringLiteral( "CREATE TABLE %1.LAYER_STYLES("
-                                                                                          "ID int identity( 1,1 ) PRIMARY KEY"
-                                                                                          ",f_table_schema varchar"
-                                                                                          ",f_table_name varchar"
-                                                                                          ",f_geometry_column varchar"
-                                                                                          ",styleName text"
-                                                                                          ",styleQML xmltype"
-                                                                                          ",styleSLD xmltype"
-                                                                                          ",useAsDefault bit"
-                                                                                          ",description text"
-                                                                                          ",owner varchar( 63 ) DEFAULT CURRENT_USER"
-                                                                                          ",ui xmltype"
-                                                                                          ",update_time timestamp DEFAULT CURRENT_TIMESTAMP"
-                                                                                          ",TYPE varchar"
-                                                                                          ")" )
-                                                                            .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) ) ) );
+                                         "ID int identity( 1,1 ) PRIMARY KEY"
+                                         ",f_table_schema varchar"
+                                         ",f_table_name varchar"
+                                         ",f_geometry_column varchar"
+                                         ",styleName text"
+                                         ",styleQML xmltype"
+                                         ",styleSLD xmltype"
+                                         ",useAsDefault bit"
+                                         ",description text"
+                                         ",owner varchar( 63 ) DEFAULT CURRENT_USER"
+                                         ",ui xmltype"
+                                         ",update_time timestamp DEFAULT CURRENT_TIMESTAMP"
+                                         ",TYPE varchar"
+                                         ")" ).arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) ) ) );
     if ( res.DMresultStatus() != DmResCommandOk )
     {
       errCause = QObject::tr( "Unable to save layer style. It's not possible to create the destination table on the database. Maybe this is due to table permissions (user=%1). Please contact your database admin" ).arg( dsUri.username() );
@@ -4660,44 +4725,45 @@ bool QgsDamengProviderMetadata::saveStyle( const QString &uri, const QString &qm
   // replaced by the QString.arg function.  To ensure that the final SQL string is not corrupt these
   // two values are both replaced in the final .arg call of the string construction.
 
-  QString sql = QString( "INSERT INTO %1.LAYER_STYLES("
+  QString sql = QStringLiteral( "INSERT INTO %1.LAYER_STYLES("
                          "f_table_schema,f_table_name,f_geometry_column,styleName,styleQML,styleSLD,useAsDefault,description,owner,TYPE%10"
                          ") VALUES ("
                          "%2,%3,%4,%5, %12, %13,%6,%7,%8,%9%11"
                          ")" )
-                  .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                  .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                  .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                  .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
-                  .arg( QgsDamengConn::quotedValue( styleName.isEmpty() ? dsUri.table() : styleName ) )
-                  .arg( useAsDefault ? "1" : "0" )
-                  .arg( QgsDamengConn::quotedValue( styleDescription.isEmpty() ? QDateTime::currentDateTime().toString() : styleDescription ) )
-                  .arg( "CURRENT_USER" )
-                  .arg( uiFileColumn )
-                  .arg( uiFileValue )
-                  .arg( wkbTypeString )
-                  // Must be the final .arg replacement - see above
-                  .arg( QgsDamengConn::quotedValue( qmlStyle ), QgsDamengConn::quotedValue( sldStyle ) );
+                .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
+                .arg( QgsDamengConn::quotedValue( styleName.isEmpty() ? dsUri.table() : styleName ) )
+                .arg( useAsDefault ? "1" : "0" )
+                .arg( QgsDamengConn::quotedValue( styleDescription.isEmpty() ? QDateTime::currentDateTime().toString() : styleDescription ) )
+                .arg( "CURRENT_USER" )
+                .arg( uiFileColumn )
+                .arg( uiFileValue )
+                .arg( wkbTypeString )
+                // Must be the final .arg replacement - see above
+                .arg( QgsDamengConn::quotedValue( qmlStyle ),
+                      QgsDamengConn::quotedValue( sldStyle ) );
 
-  QString checkQuery = QString( "SELECT styleName"
+  QString checkQuery = QStringLiteral( "SELECT styleName"
                                 " FROM %1.LAYER_STYLES"
                                 " WHERE f_table_schema=%2"
                                 " AND f_table_name=%3"
                                 " AND f_geometry_column=%4"
                                 " AND ( TYPE=%5 OR TYPE IS NULL )"
                                 " AND styleName=%6" )
-                         .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                         .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                         .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                         .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
-                         .arg( wkbTypeString )
-                         .arg( QgsDamengConn::quotedValue( styleName.isEmpty() ? dsUri.table() : styleName ) );
+                       .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                       .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                       .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                       .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
+                       .arg( wkbTypeString )
+                       .arg( QgsDamengConn::quotedValue( styleName.isEmpty() ? dsUri.table() : styleName ) );
 
   QgsDMResult *res( conn->LoggedDMexec( "QgsDamengProviderMetadata", checkQuery ) );
-
+  
   if ( res->fetchNext() )
   {
-    sql = QString( "UPDATE %5.LAYER_STYLES"
+    sql = QStringLiteral( "UPDATE %5.LAYER_STYLES"
                    " SET useAsDefault=%1"
                    ",styleQML= %10"
                    ",styleSLD= %11"
@@ -4709,32 +4775,33 @@ bool QgsDamengProviderMetadata::saveStyle( const QString &uri, const QString &qm
                    " AND f_geometry_column=%8"
                    " AND styleName=%9"
                    " AND ( TYPE=%2 OR TYPE IS NULL )" )
-            .arg( useAsDefault ? "1" : "0" )
-            .arg( wkbTypeString )
-            .arg( QgsDamengConn::quotedValue( styleDescription.isEmpty() ? QDateTime::currentDateTime().toString() : styleDescription ) )
-            .arg( "CURRENT_USER" )
-            .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-            .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-            .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-            .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
-            .arg( QgsDamengConn::quotedValue( styleName.isEmpty() ? dsUri.table() : styleName ) )
-            // Must be the final .arg replacement - see above
-            .arg( QgsDamengConn::quotedValue( qmlStyle ), QgsDamengConn::quotedValue( sldStyle ) );
+          .arg( useAsDefault ? "1" : "0" )
+          .arg( wkbTypeString )
+          .arg( QgsDamengConn::quotedValue( styleDescription.isEmpty() ? QDateTime::currentDateTime().toString() : styleDescription ) )
+          .arg( "CURRENT_USER" )
+          .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+          .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+          .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+          .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
+          .arg( QgsDamengConn::quotedValue( styleName.isEmpty() ? dsUri.table() : styleName ) )
+          // Must be the final .arg replacement - see above
+          .arg( QgsDamengConn::quotedValue( qmlStyle ),
+                QgsDamengConn::quotedValue( sldStyle ) );
   }
 
   if ( useAsDefault )
   {
-    QString removeDefaultSql = QString( "UPDATE %1.LAYER_STYLES"
+    QString removeDefaultSql = QStringLiteral( "UPDATE %1.LAYER_STYLES"
                                         " SET useAsDefault=0"
                                         " WHERE f_table_schema=%2"
                                         " AND f_table_name=%3"
                                         " AND f_geometry_column=%4"
                                         " AND ( TYPE=%5 OR TYPE IS NULL )" )
-                                 .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                                 .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                                 .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                                 .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
-                                 .arg( wkbTypeString );
+                               .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                               .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                               .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                               .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
+                               .arg( wkbTypeString );
 
     sql = QStringLiteral( "%1; %2; COMMIT;" ).arg( removeDefaultSql, sql );
   }
@@ -4794,21 +4861,21 @@ QString QgsDamengProviderMetadata::loadStoredStyle( const QString &uri, QString 
 
   if ( !columnExists( *conn, dsUri.username(), QStringLiteral( "LAYER_STYLES" ), QStringLiteral( "type" ) ) )
   {
-    selectQmlQuery = QString( "SELECT styleQML"
+    selectQmlQuery = QStringLiteral( "SELECT styleQML"
                               " FROM %1.LAYER_STYLES"
                               " WHERE f_table_schema=%2"
                               " AND f_table_name=%3"
                               " AND f_geometry_column %4"
                               " ORDER BY CASE WHEN useAsDefault THEN 1 ELSE 2 END"
                               ",update_time DESC LIMIT 1" )
-                       .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                       .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                       .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                       .arg( geomColumnExpr );
+                     .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                     .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                     .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                     .arg( geomColumnExpr );
   }
   else
   {
-    selectQmlQuery = QString( "SELECT styleQML"
+    selectQmlQuery = QStringLiteral( "SELECT styleQML"
                               " FROM %1.LAYER_STYLES"
                               " WHERE f_table_schema=%2"
                               " AND f_table_name=%3"
@@ -4816,11 +4883,11 @@ QString QgsDamengProviderMetadata::loadStoredStyle( const QString &uri, QString 
                               " AND ( type=%5 OR type IS NULL )"
                               " ORDER BY CASE WHEN useAsDefault THEN 1 ELSE 2 END"
                               ",update_time DESC LIMIT 1" )
-                       .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                       .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                       .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                       .arg( geomColumnExpr )
-                       .arg( wkbTypeString );
+                     .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                     .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                     .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                     .arg( geomColumnExpr )
+                     .arg( wkbTypeString );
   }
 
   QgsDMResult *result( conn->LoggedDMexec( "QgsDamengProviderMetadata", selectQmlQuery ) );
@@ -4832,7 +4899,8 @@ QString QgsDamengProviderMetadata::loadStoredStyle( const QString &uri, QString 
   return style;
 }
 
-int QgsDamengProviderMetadata::listStyles( const QString &uri, QStringList &ids, QStringList &names, QStringList &descriptions, QString &errCause )
+int QgsDamengProviderMetadata::listStyles( const QString &uri, QStringList &ids, QStringList &names,
+    QStringList &descriptions, QString &errCause )
 {
   errCause.clear();
   QgsDataSourceUri dsUri( uri );
@@ -4843,7 +4911,7 @@ int QgsDamengProviderMetadata::listStyles( const QString &uri, QStringList &ids,
     errCause = QObject::tr( "Connection to database failed using username: %1" ).arg( dsUri.username() );
     return -1;
   }
-
+  
   if ( !tableExists( *conn, dsUri.username(), QStringLiteral( "LAYER_STYLES" ) ) )
   {
     return -1;
@@ -4856,18 +4924,19 @@ int QgsDamengProviderMetadata::listStyles( const QString &uri, QStringList &ids,
 
   QString wkbTypeString = QgsDamengConn::quotedValue( QgsWkbTypes::geometryDisplayString( QgsWkbTypes::geometryType( dsUri.wkbType() ) ) );
 
-  QString selectRelatedQuery = QString( "SELECT id,styleName,description"
+  QString selectRelatedQuery = QStringLiteral( "SELECT id,styleName,description"
                                         " FROM %1.LAYER_STYLES"
                                         " WHERE f_table_schema=%2"
                                         " AND f_table_name=%3"
                                         " AND %4"
                                         " AND ( type=%5 OR type IS NULL )"
                                         " ORDER BY useasdefault DESC, update_time DESC" )
-                                 .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                                 .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                                 .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                                 .arg( dsUri.geometryColumn().isEmpty() ? "f_geometry_column is NULL" : QString( "f_geometry_column=%1" ).arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) ) )
-                                 .arg( wkbTypeString );
+                               .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                               .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                               .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                               .arg( dsUri.geometryColumn().isEmpty() ? "f_geometry_column is NULL" :
+                                     QStringLiteral( "f_geometry_column=%1" ).arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) ) )
+                               .arg( wkbTypeString );
 
   QgsDMResult *result( conn->LoggedDMexec( "QgsDamengProviderMetadata", selectRelatedQuery ) );
   if ( !result || !result->execstatus() )
@@ -4887,15 +4956,15 @@ int QgsDamengProviderMetadata::listStyles( const QString &uri, QStringList &ids,
     ++numberOfRelatedStyles;
   }
 
-  QString selectOthersQuery = QString( "SELECT id,styleName,description"
+  QString selectOthersQuery = QStringLiteral( "SELECT id,styleName,description"
                                        " FROM %1.LAYER_STYLES"
                                        " WHERE NOT ( f_table_schema=%2 AND f_table_name=%3 AND f_geometry_column=%4 AND type=%5 )"
                                        " ORDER BY update_time DESC" )
-                                .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                                .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
-                                .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
-                                .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
-                                .arg( wkbTypeString );
+                              .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                              .arg( QgsDamengConn::quotedValue( dsUri.schema() ) )
+                              .arg( QgsDamengConn::quotedValue( dsUri.table() ) )
+                              .arg( QgsDamengConn::quotedValue( dsUri.geometryColumn() ) )
+                              .arg( wkbTypeString );
 
   result = conn->LoggedDMexec( "QgsDamengProviderMetadata", selectOthersQuery );
   if ( !result || !result->execstatus() )
@@ -4932,17 +5001,14 @@ bool QgsDamengProviderMetadata::deleteStyleById( const QString &uri, const QStri
   else
   {
     QString deleteStyleQuery = QStringLiteral( "DELETE FROM %1.LAYER_STYLES WHERE id=%2" )
-                                 .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                                 .arg( QgsDamengConn::quotedValue( styleId ) );
+                                  .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
+                                  .arg( QgsDamengConn::quotedValue( styleId ) );
     QgsDamengResult result( conn->LoggedDMexec( "QgsDamengProviderMetadata", deleteStyleQuery ) );
     if ( result.DMresultStatus() != DmResCommandOk )
     {
       QgsDebugError(
-        QString( "LoggedDMexec of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
-          .arg( result.DMresultStatus() )
-          .arg( DmResCommandOk )
-          .arg( deleteStyleQuery )
-      );
+        QStringLiteral( "LoggedDMexec of this query returning != DMRES_COMMAND_OK (%1 != expected %2 ): %3" )
+        .arg( result.DMresultStatus() ).arg( DmResCommandOk ).arg( deleteStyleQuery ) );
       QgsMessageLog::logMessage( QObject::tr( "Error executing query: %1" ).arg( deleteStyleQuery ) );
       errCause = QObject::tr( "Error executing the delete query. The query was logged" );
       deleted = false;
@@ -4969,8 +5035,7 @@ QString QgsDamengProviderMetadata::getStyleById( const QString &uri, const QStri
 
   QString style;
   QString selectQmlQuery = QStringLiteral( "SELECT styleQml FROM %1.LAYER_STYLES WHERE id=%2" )
-                             .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) )
-                             .arg( QgsDamengConn::quotedValue( styleId ) );
+                            .arg( QgsDamengConn::quotedIdentifier( dsUri.username() ) ).arg( QgsDamengConn::quotedValue( styleId ) );
   QgsDMResult *result( conn->LoggedDMexec( "QgsDamengProviderMetadata", selectQmlQuery ) );
 
   if ( result && result->execstatus() )
@@ -5014,7 +5079,7 @@ void QgsDamengProviderMetadata::deleteConnection( const QString &name )
   deleteConnectionProtected<QgsDamengProviderConnection>( name );
 }
 
-void QgsDamengProviderMetadata::saveConnection( const QgsAbstractProviderConnection *conn, const QString &name )
+void QgsDamengProviderMetadata::saveConnection( const QgsAbstractProviderConnection *conn,  const QString &name )
 {
   saveConnectionProtected( conn, name );
 }
@@ -5025,18 +5090,18 @@ QgsAbstractProviderConnection *QgsDamengProviderMetadata::createConnection( cons
 }
 
 
-QgsDamengProjectStorage *gDmProjectStorage = nullptr; // when not null it is owned by QgsApplication::projectStorageRegistry()
+QgsDamengProjectStorage *gDmProjectStorage = nullptr;   // when not null it is owned by QgsApplication::projectStorageRegistry()
 
 void QgsDamengProviderMetadata::initProvider()
 {
   Q_ASSERT( !gDmProjectStorage );
   gDmProjectStorage = new QgsDamengProjectStorage;
-  QgsApplication::projectStorageRegistry()->registerProjectStorage( gDmProjectStorage ); // takes ownership
+  QgsApplication::projectStorageRegistry()->registerProjectStorage( gDmProjectStorage );  // takes ownership
 }
 
 void QgsDamengProviderMetadata::cleanupProvider()
 {
-  QgsApplication::projectStorageRegistry()->unregisterProjectStorage( gDmProjectStorage ); // destroys the object
+  QgsApplication::projectStorageRegistry()->unregisterProjectStorage( gDmProjectStorage );  // destroys the object
   gDmProjectStorage = nullptr;
 
   QgsDamengConnPool::cleanupInstance();
@@ -5103,7 +5168,7 @@ QVariantList QgsDamengSharedData::removeFid( QgsFeatureId fid )
 {
   QMutexLocker locker( &mMutex );
 
-  QVariantList v = mFidToKey[fid];
+  QVariantList v = mFidToKey[ fid ];
   mFidToKey.remove( fid );
   mKeyToFid.remove( v );
   return v;
@@ -5157,7 +5222,7 @@ bool QgsDamengSharedData::fieldSupportsEnumValues( int index )
 void QgsDamengSharedData::setFieldSupportsEnumValues( int index, bool isSupported )
 {
   QMutexLocker locker( &mMutex );
-  mFieldSupportsEnumValues[index] = isSupported;
+  mFieldSupportsEnumValues[ index ] = isSupported;
 }
 
 

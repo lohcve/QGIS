@@ -44,7 +44,7 @@ void QgsDamengGeomColumnTypeThread::run()
   mConn = QgsDamengConnPool::instance()->acquireConnection( uri.connectionInfo( false ) );
   if ( !mConn )
   {
-    QgsDebugError( "Connection failed - " + uri.connectionInfo( false ) );
+    QgsDebugError( QStringLiteral( "Connection failed - " ) + uri.connectionInfo( false ) );
     return;
   }
 
@@ -68,9 +68,11 @@ void QgsDamengGeomColumnTypeThread::run()
 
   QVector<QgsDamengLayerProperty *> unrestrictedLayers;
 
-  for ( auto &layerProperty : layerProperties )
+  for ( const auto &layerProperty : layerProperties )
   {
     if ( !layerProperty.geometryColName.isNull() && ( layerProperty.types.value( 0, Qgis::WkbType::Unknown ) == Qgis::WkbType::Unknown || layerProperty.srids.value( 0, std::numeric_limits<int>::min() ) == std::numeric_limits<int>::min() ) )
+         ( layerProperty.types.value( 0, Qgis::WkbType::Unknown ) == Qgis::WkbType::Unknown ||
+           layerProperty.srids.value( 0, std::numeric_limits<int>::min() ) == std::numeric_limits<int>::min() ) )
     {
       unrestrictedLayers << &layerProperty;
     }

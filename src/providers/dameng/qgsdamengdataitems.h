@@ -65,6 +65,7 @@ class QgsDamengConnectionItem : public QgsDataCollectionItem
 
     // refresh specified schema or all schemas if schema name is empty
     void refreshSchema( const QString &schema );
+
 };
 
 class QgsDamengSchemaItem : public QgsDatabaseSchemaItem
@@ -104,7 +105,9 @@ class QgsDamengLayerItem : public QgsLayerItem
 
   private:
     QgsDamengLayerProperty mLayerProperty;
+
 };
+
 
 
 //! Provider for Dameng data item

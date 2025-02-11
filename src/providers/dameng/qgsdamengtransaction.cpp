@@ -22,6 +22,7 @@
 QgsDamengTransaction::QgsDamengTransaction( const QString &connString )
   : QgsTransaction( connString )
 {
+
 }
 
 QgsDamengTransaction::~QgsDamengTransaction() = default;

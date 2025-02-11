@@ -53,7 +53,7 @@ class QgsDamengTableModel : public QgsAbstractDbTableModel
       DbtmComment,
       DbtmGeomCol,
       DbtmGeomType, // Data type ( geometry, geography, topogeometry, ...)
-      DbtmType,     // Spatial type ( point, line, polygon, ...)
+      DbtmType, // Spatial type ( point, line, polygon, ...)
       DbtmSrid,
       DbtmPkCol,
       DbtmSelectAtId,
@@ -66,7 +66,7 @@ class QgsDamengTableModel : public QgsAbstractDbTableModel
 
     QString layerURI( const QModelIndex &index, const QString &connInfo, bool useEstimatedMetadata );
 
-    void setConnectionName( const QString &connName ) { mConnName = connName; }
+    void setConnectionName( const QString &connName ) { mConnName = connName;  }
 
   private:
     //! Number of tables in the model
