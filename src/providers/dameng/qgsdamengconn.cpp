@@ -437,8 +437,8 @@ int QgsDamengConn::DMserverVersion() const
   if ( !mConn || !DMconnStatus() )
     return 0;
 
-  QString version = "select substr( substr( SVR_VERSION,instr( SVR_VERSION,'V' ) ) || "
-                    " substr( id_code,15,8 ),2 ) from v$instance";
+  QString version = QStringLiteral( "select substr( substr( SVR_VERSION,instr( SVR_VERSION,'V' ) ) || "
+    " substr( id_code,15,8 ),2 ) from v$instance" );
   QgsDMResult *res = LoggedDMexec( "QgsDamengConn", version );
   if ( res && res->execstatus() && res->fetchNext() )
     return res->value( 0 ).toString().remove( '\n' ).toInt();
@@ -538,12 +538,12 @@ bool QgsDamengConn::getTableInfo( bool searchSysdbaOnly, bool allowGeometrylessT
       schemaName = QStringLiteral( "G.SCHEMA_NAME" );
       tableName = QStringLiteral( "G.TABLE_NAME" );
       columnName = QStringLiteral( "G.FEATURE_COLUMN" );
-      typeName = "CASE "
-                 "WHEN G.FEATURE_TYPE = 1 THEN \'MULTIPOINT\' "
-                 "WHEN G.FEATURE_TYPE = 2 THEN \'MULTILINESTRING\' "
-                 "WHEN G.FEATURE_TYPE = 3 THEN \'MULTIPOLYGON\' "
-                 "WHEN G.FEATURE_TYPE = 4 THEN \'GEOMETRYCOLLECTION\' "
-                 "END AS type";
+      typeName = QStringLiteral( "CASE "
+        "WHEN G.FEATURE_TYPE = 1 THEN \'MULTIPOINT\' "
+        "WHEN G.FEATURE_TYPE = 2 THEN \'MULTILINESTRING\' "
+        "WHEN G.FEATURE_TYPE = 3 THEN \'MULTIPOLYGON\' "
+        "WHEN G.FEATURE_TYPE = 4 THEN \'GEOMETRYCOLLECTION\' "
+        "END AS type" );
       sridName = QStringLiteral( "( SELECT srid FROM SYSTOPOLOGY.SYSTOPOLOGY t WHERE G.TOPOLOGY_ID=t.id )" );
       dimName = QStringLiteral( "2" );
       gtableName = QStringLiteral( "SYSTOPOLOGY.SYSLAYER" );
