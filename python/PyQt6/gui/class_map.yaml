@@ -4147,10 +4147,10 @@ QgsLongLongValidator.setTop: src/gui/qgslonglongvalidator.h#L85
 QgsLongLongValidator.top: src/gui/qgslonglongvalidator.h#L94
 QgsLongLongValidator.validate: src/gui/qgslonglongvalidator.h#L82
 QgsLongLongValidator: src/gui/qgslonglongvalidator.h#L32
-QgsManageConnectionsDialog.clearSelection: src/gui/qgsmanageconnectionsdialog.h#L69
-QgsManageConnectionsDialog.doExportImport: src/gui/qgsmanageconnectionsdialog.h#L67
-QgsManageConnectionsDialog.selectAll: src/gui/qgsmanageconnectionsdialog.h#L68
-QgsManageConnectionsDialog.selectionChanged: src/gui/qgsmanageconnectionsdialog.h#L70
+QgsManageConnectionsDialog.clearSelection: src/gui/qgsmanageconnectionsdialog.h#L70
+QgsManageConnectionsDialog.doExportImport: src/gui/qgsmanageconnectionsdialog.h#L68
+QgsManageConnectionsDialog.selectAll: src/gui/qgsmanageconnectionsdialog.h#L69
+QgsManageConnectionsDialog.selectionChanged: src/gui/qgsmanageconnectionsdialog.h#L71
 QgsManageConnectionsDialog: src/gui/qgsmanageconnectionsdialog.h#L31
 QgsMapCanvas.ScaleRestorer: src/gui/qgsmapcanvas.h#L1299
 QgsMapCanvas.addOverlayWidget: src/gui/qgsmapcanvas.h#L123
