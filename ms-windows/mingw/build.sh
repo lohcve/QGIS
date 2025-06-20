@@ -104,6 +104,8 @@ mkdir -p "$BUILDDIR"
     -DWITH_SERVER=ON \
     -DWITH_SERVER_LANDINGPAGE_WEBAPP=ON \
     -DWITH_DAMENG=ON \
+    -DDAMENG_INCLUDE_DIR=$SRCDIR/dmdbms/include/ \
+    -DDAMENG_LIBRARY=$SRCDIR/dmdbms/include/ \
     -DTXT2TAGS_EXECUTABLE= \
     ..
 )
